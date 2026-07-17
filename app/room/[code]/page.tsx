@@ -1,0 +1,910 @@
+"use client";
+import { useEffect, useState, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import CDWheel from "@/components/CDWheel";
+import YouTubePlayer from "@/components/YouTubePlayer";
+import StarVote from "@/components/StarVote";
+import SongSearch from "@/components/SongSearch";
+import Countdown from "@/components/Countdown";
+import QRCode from "react-qr-code";
+import type { Room, TimeLimit, SongDuration, ScreenMode } from "@/lib/gameState";
+import { getSocket } from "@/lib/socket";
+import TopBar from "@/components/TopBar";
+
+interface WheelOption { id: string; name: string; categories: { name: string }[]; }
+interface FriendUser { id: string; username: string; image: string | null; }
+
+function StartingCountdown() {
+  const [n, setN] = useState(3);
+  useEffect(() => {
+    if (n <= 0) return;
+    const t = setTimeout(() => setN((p) => p - 1), 1000);
+    return () => clearTimeout(t);
+  }, [n]);
+  return (
+    <div style={{
+      fontSize: 96, fontWeight: 900, lineHeight: 1,
+      color: "#e21b1b",
+      textShadow: "0 0 40px rgba(226,27,27,0.35)",
+      transition: "all 0.3s",
+    }}>
+      {n > 0 ? n : "GO!"}
+    </div>
+  );
+}
+
+function SongTimer({ duration, onExpire }: { duration: number; onExpire?: () => void }) {
+  const [remaining, setRemaining] = useState(duration);
+  const calledRef = useRef(false);
+  useEffect(() => {
+    if (remaining <= 0) {
+      if (!calledRef.current) { calledRef.current = true; onExpire?.(); }
+      return;
+    }
+    const t = setTimeout(() => setRemaining((p) => p - 1), 1000);
+    return () => clearTimeout(t);
+  }, [remaining, onExpire]);
+  const pct = (remaining / duration) * 100;
+  const urgent = remaining <= 5;
+  return (
+    <div style={{ marginTop: 6 }}>
+      <div style={{ height: 4, borderRadius: 2, background: "rgba(30,26,20,0.1)", overflow: "hidden", width: 200 }}>
+        <div style={{
+          height: "100%", borderRadius: 2,
+          width: `${pct}%`,
+          background: urgent ? "var(--danger)" : "var(--cream)",
+          transition: "width 1s linear, background 0.3s",
+        }} />
+      </div>
+      <p style={{ fontSize: 12, color: urgent ? "var(--danger)" : "var(--text-secondary)", marginTop: 4 }}>
+        {remaining}s remaining
+      </p>
+    </div>
+  );
+}
+
+function getResults(room: Room) {
+  return room.submissions
+    .map((s) => ({
+      playerId: s.playerId,
+      playerName: s.playerName,
+      avg: s.votes.length > 0 ? s.votes.reduce((a: number, b: number) => a + b, 0) / s.votes.length : 0,
+    }))
+    .sort((a, b) => b.avg - a.avg);
+}
+
+export default function HostRoom() {
+  const { code } = useParams<{ code: string }>();
+  const router = useRouter();
+  const { data: session } = useSession();
+  const [room, setRoom] = useState<Room | null>(null);
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [songTitle, setSongTitle] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [votedSongs, setVotedSongs] = useState<Set<number>>(new Set());
+  const [startTimeInput, setStartTimeInput] = useState("");
+  const [myWheels, setMyWheels] = useState<WheelOption[]>([]);
+  const [selectedWheelId, setSelectedWheelId] = useState<string>("default");
+  const [codeVisible, setCodeVisible] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const [friendsList, setFriendsList] = useState<FriendUser[]>([]);
+  const [inviteMenuOpen, setInviteMenuOpen] = useState(false);
+  const [invitedFriendIds, setInvitedFriendIds] = useState<Set<string>>(new Set());
+  const inviteMenuRef = useRef<HTMLDivElement>(null);
+  const s = useRef(getSocket());
+
+  useEffect(() => {
+    const sock = s.current;
+    sock.on("room-updated", (r: Room) => setRoom(r));
+    sock.on("joined", (r: Room) => setRoom(r));
+    sock.on("room-created", (r: Room) => setRoom(r));
+    sock.on("submit-error", ({ message }: { message: string }) => {
+      setSubmitError(message);
+      setSubmitted(false);
+    });
+
+    // Request current state in case we navigated here after events already fired
+    const requestRoom = () => sock.emit("get-room", { code });
+    if (sock.connected) {
+      requestRoom();
+    } else {
+      sock.once("connect", requestRoom);
+    }
+
+    return () => {
+      sock.off("room-updated");
+      sock.off("joined");
+      sock.off("room-created");
+      sock.off("submit-error");
+      sock.off("connect", requestRoom);
+    };
+  }, [code]);
+
+  // Fetch user's custom wheels if signed in
+  useEffect(() => {
+    if (!session) return;
+    fetch("/api/wheels").then(r => r.ok ? r.json() : []).then(setMyWheels);
+  }, [session]);
+
+  // Fetch friends list if signed in, for the invite menu
+  useEffect(() => {
+    if (!session) return;
+    fetch("/api/friends").then(r => r.ok ? r.json() : null).then(data => {
+      if (data) setFriendsList(data.friends);
+    });
+  }, [session]);
+
+  // Close the invite menu on an outside click
+  useEffect(() => {
+    if (!inviteMenuOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (inviteMenuRef.current && !inviteMenuRef.current.contains(e.target as Node)) setInviteMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [inviteMenuOpen]);
+
+  // Lock this page in place — no scrolling.
+  useEffect(() => {
+    const { documentElement: html, body } = document;
+    const prevHtml = html.style.overflow;
+    const prevBody = body.style.overflow;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = prevHtml;
+      body.style.overflow = prevBody;
+    };
+  }, []);
+
+  const applyWheel = (wheelId: string) => {
+    setSelectedWheelId(wheelId);
+    if (wheelId === "default") return; // server keeps its default categories
+    const wheel = myWheels.find(w => w.id === wheelId);
+    if (!wheel) return;
+    s.current.emit("set-categories", { code, categories: wheel.categories.map(c => c.name) });
+  };
+
+  const copyInviteLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/join/${code}`);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 1800);
+    } catch {
+      // clipboard unavailable — button silently stays "Invite Friends"
+    }
+  };
+
+  const inviteFriend = async (friendId: string) => {
+    const res = await fetch(`/api/messages/${friendId}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "INVITE", roomCode: code }),
+    });
+    if (res.ok) setInvitedFriendIds(prev => new Set([...prev, friendId]));
+  };
+
+  if (!room) {
+    return (
+      <div className="page">
+        <TopBar />
+        <div className="glass p-8 text-center animate-fade-in">
+          <p style={{ color: "var(--text-secondary)" }}>Connecting…</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isHost = room.hostId === s.current.id;
+
+  const spinWheel = () => s.current.emit("spin-wheel", { code });
+  const startPlaying = () => s.current.emit("start-playing", { code });
+  const nextSong = () => s.current.emit("next-song", { code });
+  const newRound = () => {
+    setSubmitted(false);
+    setYoutubeUrl("");
+    setSongTitle("");
+    setVotedSongs(new Set());
+    s.current.emit("new-round", { code });
+  };
+
+  const castVote = (songIndex: number, stars: number) => {
+    s.current.emit("cast-vote", { code, songIndex, stars });
+    setVotedSongs((prev) => new Set([...prev, songIndex]));
+  };
+
+  const parseStartTime = (val: string): number => {
+    const parts = val.trim().split(":").map(Number);
+    if (parts.length === 2) return (parts[0] ?? 0) * 60 + (parts[1] ?? 0);
+    if (parts.length === 1) return parts[0] ?? 0;
+    return 0;
+  };
+
+  const submitSong = () => {
+    if (!youtubeUrl.trim()) return setSubmitError("Paste a YouTube link");
+    if (!songTitle.trim()) return setSubmitError("Add a song title");
+    if (!youtubeUrl.includes("youtu")) return setSubmitError("Must be a YouTube link");
+    const startTime = startTimeInput ? parseStartTime(startTimeInput) : 0;
+    s.current.emit("submit-song", { code, youtubeUrl: youtubeUrl.trim(), title: songTitle.trim(), startTime });
+    setSubmitted(true);
+    setSubmitError("");
+  };
+
+  const setTimeLimitOption = (limit: TimeLimit) => {
+    s.current.emit("set-time-limit", { code, limit });
+  };
+
+  const setSongDurationOption = (duration: SongDuration) => {
+    s.current.emit("set-song-duration", { code, duration });
+  };
+
+  const setScreenModeOption = (mode: ScreenMode) => {
+    s.current.emit("set-screen-mode", { code, mode });
+  };
+
+  const results = getResults(room);
+  const topScore = results[0]?.avg ?? 0;
+  const tied = results.filter((r) => r.avg === topScore && topScore > 0);
+  const currentSong = room.submissions[room.currentSongIndex];
+  const isMyOwnSong = currentSong?.playerId === s.current.id;
+  const alreadyVoted = votedSongs.has(room.currentSongIndex);
+
+  // Wheel choices (host only) — "default" plus any wheels this signed-in host owns
+  const wheelChoices: WheelOption[] = [{ id: "default", name: "Default (15 categories)", categories: [] }, ...myWheels];
+
+  // LOBBY
+  if (room.phase === "lobby") {
+    const colLabel: React.CSSProperties = {
+      fontSize: 10, letterSpacing: "0.25em", color: "var(--text-faint)",
+      textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 10,
+    };
+    const wheelsAuthHref = session ? "/wheels" : "/auth?callbackUrl=/wheels";
+
+    return (
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
+        <TopBar />
+        <div className="page-wide" style={{ width: "100%" }}>
+          <div className="glass" style={{
+            width: "100%", maxWidth: 1180, margin: "0 auto",
+            maxHeight: "38vh", minHeight: 220,
+            display: "flex", flexDirection: "column",
+            padding: "22px 36px",
+          }}>
+
+          {/* Content between the header and the pinned players/status footer */}
+          <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column" }}>
+
+            {/* Upper section — Room / Settings / Wheels. Only the Wheels column
+               scrolls internally (its list can grow arbitrarily long); Room Code
+               and Game Settings never need to. */}
+            <div style={{ display: "flex", flex: "1 1 auto", minHeight: 0 }}>
+
+              {/* Left — Room code + invite (~28%) */}
+              <div style={{
+                flex: "0 0 28%", display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center", textAlign: "center",
+                gap: 8, paddingRight: 32, borderRight: "1px solid var(--glass-border2)",
+              }}>
+                <p style={colLabel}>Room Code</p>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                  <div
+                    className="room-code"
+                    style={{
+                      filter: codeVisible ? "none" : "blur(9px)",
+                      userSelect: codeVisible ? "text" : "none",
+                      transition: "filter 0.2s ease",
+                    }}
+                  >{code}</div>
+                  <button
+                    onClick={() => setCodeVisible(v => !v)}
+                    title={codeVisible ? "Hide room code" : "Show room code"}
+                    aria-label={codeVisible ? "Hide room code" : "Show room code"}
+                    style={{
+                      background: "none", border: "none", cursor: "pointer", padding: 4,
+                      lineHeight: 1, opacity: 0.6, transition: "opacity 0.15s",
+                      color: "var(--text-dark)", display: "flex",
+                    }}
+                  >
+                    {codeVisible ? (
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a20.32 20.32 0 0 1-3.22 4.44M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    ) : (
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+                <div style={{ background: "white", padding: 8, borderRadius: 2, filter: codeVisible ? "none" : "blur(9px)", transition: "filter 0.2s ease" }}>
+                  <QRCode value={`${typeof window !== "undefined" ? window.location.origin : ""}/join/${code}`} size={64} />
+                </div>
+                <p style={{ fontSize: 11, color: "var(--text-faint)", fontStyle: "italic" }}>
+                  {codeVisible ? "Scan to join on your phone" : "Hidden — click the eye to reveal"}
+                </p>
+                <div ref={inviteMenuRef} style={{ position: "relative", width: "100%", marginTop: 2 }}>
+                  <button
+                    className="btn-glow"
+                    onClick={() => session ? setInviteMenuOpen(o => !o) : copyInviteLink()}
+                    style={{ width: "100%" }}
+                  >
+                    {inviteCopied ? "Copied! ✓" : "Invite Friends"}
+                  </button>
+
+                  {inviteMenuOpen && (
+                    <div className="aero-panel" style={{
+                      position: "absolute", bottom: "calc(100% + 8px)", left: "50%", transform: "translateX(-50%)",
+                      width: 230, borderRadius: 12, padding: 14, textAlign: "left", zIndex: 20,
+                      animation: "inviteMenuIn 0.18s ease", background: "var(--glass)",
+                      boxShadow: "0 2px 0 rgba(255,255,255,0.95) inset, 0 12px 40px var(--shadow-soft), 0 2px 8px var(--shadow-hard)",
+                    }}>
+                      <p style={{ ...colLabel, marginBottom: 10 }}>Invite a Friend</p>
+                      {friendsList.length === 0 ? (
+                        <p style={{ fontSize: 12, color: "var(--text-faint)", fontStyle: "italic" }}>
+                          No friends yet — <a href="/friends" style={{ color: "var(--cream-ghost)" }}>add some</a>
+                        </p>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4, maxHeight: 200, overflowY: "auto" }}>
+                          {friendsList.map(f => {
+                            const invited = invitedFriendIds.has(f.id);
+                            return (
+                              <button
+                                key={f.id}
+                                onClick={() => !invited && inviteFriend(f.id)}
+                                disabled={invited}
+                                style={{
+                                  display: "flex", alignItems: "center", gap: 8, width: "100%",
+                                  background: "transparent", border: "none", padding: "6px 4px",
+                                  textAlign: "left", cursor: invited ? "default" : "pointer",
+                                  opacity: invited ? 0.5 : 1,
+                                }}
+                              >
+                                {f.image ? (
+                                  <img src={f.image} alt="" style={{ width: 24, height: 24, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                                ) : (
+                                  <div style={{
+                                    width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
+                                    background: "var(--glass-2)", display: "flex", alignItems: "center", justifyContent: "center",
+                                    fontFamily: "'Pinyon Script', cursive", fontSize: 13, color: "var(--text-dark)",
+                                  }}>{f.username[0]?.toUpperCase()}</div>
+                                )}
+                                <span style={{ fontSize: 13, color: "var(--text-dark)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                  {f.username}
+                                </span>
+                                <span style={{ fontSize: 10, color: invited ? "rgba(226,27,27,0.7)" : "var(--text-faint)", flexShrink: 0 }}>
+                                  {invited ? "Invited ✓" : "Invite"}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <div className="rule" style={{ margin: "12px 0 10px" }} />
+                      <button
+                        onClick={copyInviteLink}
+                        style={{
+                          fontSize: 11, color: "var(--text-faint)", background: "none", border: "none",
+                          cursor: "pointer", textDecoration: "underline", padding: 0,
+                        }}
+                      >
+                        {inviteCopied ? "Link copied!" : "Copy invite link instead"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Middle — Game settings (~40%) */}
+              <div style={{
+                flex: "0 0 40%", display: "flex", flexDirection: "column",
+                padding: "0 32px", borderRight: "1px solid var(--glass-border2)",
+              }}>
+                <p style={colLabel}>Game Settings</p>
+                {isHost ? (
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <p style={{ ...colLabel, marginBottom: 6 }}>Song Selection Limit</p>
+                    <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+                      {([null, 1, 3, 5] as TimeLimit[]).map((limit) => (
+                        <button
+                          key={String(limit)}
+                          onClick={() => setTimeLimitOption(limit)}
+                          style={{
+                            flex: 1, padding: "6px 4px", borderRadius: 0, border: "1px solid",
+                            borderColor: room.timeLimit === limit ? "rgba(226,27,27,0.5)" : "var(--glass-border2)",
+                            background: room.timeLimit === limit ? "rgba(226,27,27,0.08)" : "transparent",
+                            color: room.timeLimit === limit ? "var(--cream)" : "var(--text-secondary)",
+                            cursor: "pointer", fontWeight: 700, fontSize: 13, transition: "all 0.15s",
+                          }}
+                        >
+                          {limit === null ? "∞" : `${limit}m`}
+                        </button>
+                      ))}
+                    </div>
+
+                    <p style={{ ...colLabel, marginBottom: 6 }}>Max Song Runtime</p>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {([null, 15, 30, 60] as SongDuration[]).map((dur) => (
+                        <button
+                          key={String(dur)}
+                          onClick={() => setSongDurationOption(dur)}
+                          style={{
+                            flex: 1, padding: "6px 4px", borderRadius: 0, border: "1px solid",
+                            borderColor: room.songDuration === dur ? "rgba(226,27,27,0.5)" : "var(--glass-border2)",
+                            background: room.songDuration === dur ? "rgba(226,27,27,0.08)" : "transparent",
+                            color: room.songDuration === dur ? "var(--cream)" : "var(--text-secondary)",
+                            cursor: "pointer", fontWeight: 700, fontSize: 13, transition: "all 0.15s",
+                          }}
+                        >
+                          {dur === null ? "∞" : dur >= 60 ? "1m" : `${dur}s`}
+                        </button>
+                      ))}
+                    </div>
+
+                    <p style={{ ...colLabel, marginTop: 14, marginBottom: 6 }}>Screen Mode</p>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {([
+                        { mode: "shared" as ScreenMode, label: "One Screen" },
+                        { mode: "everyone" as ScreenMode, label: "Everyone's Screen" },
+                      ]).map(({ mode, label }) => (
+                        <button
+                          key={mode}
+                          onClick={() => setScreenModeOption(mode)}
+                          style={{
+                            flex: 1, padding: "6px 4px", borderRadius: 0, border: "1px solid",
+                            borderColor: room.screenMode === mode ? "rgba(226,27,27,0.5)" : "var(--glass-border2)",
+                            background: room.screenMode === mode ? "rgba(226,27,27,0.08)" : "transparent",
+                            color: room.screenMode === mode ? "var(--cream)" : "var(--text-secondary)",
+                            cursor: "pointer", fontSize: 11, transition: "all 0.15s",
+                            fontFamily: "'Cormorant Garamond', serif",
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <p style={{ fontSize: 10, color: "var(--text-faint)", fontStyle: "italic", marginTop: 6 }}>
+                      {room.screenMode === "everyone"
+                        ? "Every player also gets the video on their own device."
+                        : "Only this screen plays the video — players just vote."}
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                    <div>
+                      <p style={{ ...colLabel, marginBottom: 6 }}>Song Selection Limit</p>
+                      <p style={{ fontSize: 14, color: "var(--text-secondary)", fontFamily: "'Cormorant Garamond', serif" }}>
+                        {room.timeLimit === null ? "No limit" : `${room.timeLimit} min`}
+                      </p>
+                    </div>
+                    <div>
+                      <p style={{ ...colLabel, marginBottom: 6 }}>Max Song Runtime</p>
+                      <p style={{ fontSize: 14, color: "var(--text-secondary)", fontFamily: "'Cormorant Garamond', serif" }}>
+                        {room.songDuration === null ? "No limit" : room.songDuration >= 60 ? "1 min" : `${room.songDuration}s`}
+                      </p>
+                    </div>
+                    <div>
+                      <p style={{ ...colLabel, marginBottom: 6 }}>Screen Mode</p>
+                      <p style={{ fontSize: 14, color: "var(--text-secondary)", fontFamily: "'Cormorant Garamond', serif" }}>
+                        {room.screenMode === "everyone" ? "Everyone's Screen" : "One Screen"}
+                      </p>
+                    </div>
+                    <p style={{ fontSize: 11, color: "var(--text-faint)", fontStyle: "italic", marginTop: 4 }}>
+                      Only the host can change these.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Right — Wheels list (~32%) — its own independent scroll region */}
+              <div style={{
+                flex: "0 0 32%", display: "flex", flexDirection: "column",
+                alignItems: "center", paddingLeft: 32, minHeight: 0, overflowY: "auto",
+              }}>
+                <p style={{ ...colLabel, flexShrink: 0 }}>Wheels</p>
+                {isHost ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
+                    {wheelChoices.map(w => (
+                      <button
+                        key={w.id}
+                        onClick={() => applyWheel(w.id)}
+                        style={{
+                          textAlign: "left", cursor: "pointer", border: "1px solid",
+                          borderColor: selectedWheelId === w.id ? "rgba(226,27,27,0.45)" : "var(--glass-border2)",
+                          background: selectedWheelId === w.id ? "rgba(226,27,27,0.05)" : "transparent",
+                          padding: "8px 12px",
+                          color: selectedWheelId === w.id ? "var(--cream)" : "var(--text-secondary)",
+                          fontFamily: "'Cormorant Garamond', serif",
+                          transition: "all 0.2s",
+                        }}
+                      >
+                        <p style={{ fontSize: 13, fontWeight: 300, letterSpacing: "0.04em" }}>{w.name}</p>
+                        {w.categories.length > 0 && (
+                          <p style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 2, letterSpacing: "0.1em" }}>
+                            {w.categories.length} categories
+                          </p>
+                        )}
+                      </button>
+                    ))}
+
+                    <a href={wheelsAuthHref} style={{
+                      fontSize: 10, color: "var(--text-faint)", marginTop: 4,
+                      letterSpacing: "0.18em", textDecoration: "none", textTransform: "uppercase",
+                      fontFamily: "'Cormorant Garamond', serif",
+                    }}>
+                      + Manage Wheels →
+                    </a>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: "center" }}>
+                    <p style={{ fontSize: 14, color: "var(--text-secondary)", fontFamily: "'Cormorant Garamond', serif" }}>
+                      {room.categories.length} categories in play
+                    </p>
+                    <p style={{ fontSize: 11, color: "var(--text-faint)", fontStyle: "italic", marginTop: 8 }}>
+                      Chosen by the host
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          {/* end scrollable content — divider, players, and status line below always stay visible */}
+
+          <div className="rule" style={{ width: "100%", margin: "14px 0", flexShrink: 0 }} />
+
+          {/* Players, full width — pinned so it's always visible, never scrolled out of view */}
+          <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
+            <p style={{ ...colLabel, marginBottom: 10 }}>Players ({room.players.length}/8)</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignContent: "flex-start" }}>
+              {room.players.map((p) => (
+                <div key={p.id} style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  border: "1px solid var(--glass-border2)",
+                  padding: "5px 12px 5px 5px",
+                }}>
+                  <div style={{
+                    width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
+                    background: "var(--glass-2)", display: "flex", alignItems: "center", justifyContent: "center",
+                    fontFamily: "'Pinyon Script', cursive", fontSize: 14, color: "var(--text-dark)",
+                  }}>{p.name[0]?.toUpperCase()}</div>
+                  <span style={{
+                    fontSize: 13, color: "var(--cream-dim)",
+                    fontFamily: "'Cormorant Garamond', serif", fontWeight: 300,
+                  }}>
+                    {p.name}
+                  </span>
+                  {p.isHost && (
+                    <span style={{
+                      fontSize: 9, letterSpacing: "0.12em", color: "rgba(226,27,27,0.75)",
+                      fontFamily: "'Cormorant Garamond', serif", textTransform: "uppercase",
+                    }}>Host</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {isHost && room.players.length >= 2 && (
+            <button className="btn-glow" onClick={spinWheel} style={{ width: "100%", marginTop: 20, flexShrink: 0 }}>
+              Spin the Wheel
+            </button>
+          )}
+          {isHost && room.players.length < 2 && (
+            <p style={{ color: "var(--text-faint)", textAlign: "center", fontSize: 11, fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", marginTop: 20, flexShrink: 0 }}>
+              Waiting for at least 2 players…
+            </p>
+          )}
+          </div>
+        </div>
+
+        <style>{`
+          @keyframes inviteMenuIn{
+            from{ opacity:0; transform:translate(-50%, 8px); }
+            to{ opacity:1; transform:translate(-50%, 0); }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
+  // STARTING — 3-second countdown
+  if (room.phase === "starting") {
+    return (
+      <div className="page">
+        <TopBar />
+        <div className="glass p-12 text-center animate-fade-in" style={{ maxWidth: 400 }}>
+          <p style={{ fontSize: 13, letterSpacing: "0.15em", color: "var(--text-secondary)", marginBottom: 16 }}>GET READY</p>
+          <StartingCountdown />
+          <p style={{ color: "var(--text-secondary)", fontSize: 14, marginTop: 16 }}>Songs are about to play!</p>
+        </div>
+      </div>
+    );
+  }
+
+  // SPINNING + SUBMITTING — show the wheel on host screen
+  if (room.phase === "spinning" || room.phase === "submitting") {
+    const allSubmitted = room.submissions.length >= room.players.length;
+    return (
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
+        <TopBar />
+        <div style={{ width: "100%", maxWidth: 600, display: "flex", flexDirection: "column", alignItems: "center", gap: 32 }}>
+          <div className="text-center">
+            <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-secondary)", letterSpacing: "0.1em" }}>
+              {room.phase === "spinning" ? "SPINNING…" : room.currentCategory?.toUpperCase()}
+            </h2>
+          </div>
+
+          <div className="submit-grid" style={{ width: "100%" }}>
+            <div className="submit-wheel">
+              <CDWheel
+                spinning={room.phase === "spinning"}
+                category={room.currentCategory}
+                categories={room.categories}
+              />
+            </div>
+
+          {room.phase === "submitting" && (
+            <div className="submit-form" style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }}>
+              {/* Countdown */}
+              {room.submissionDeadline && (
+                <div style={{ display: "flex", justifyContent: "center" }}>
+                  <Countdown deadline={room.submissionDeadline} />
+                </div>
+              )}
+
+              {/* Host song submission */}
+              {submitted ? (
+                <div className="glass p-4 text-center">
+                  <p style={{ color: "var(--cream)", fontWeight: 300, letterSpacing: "0.1em" }}>✓ Your song is in</p>
+                  <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 4 }}>{songTitle}</p>
+                </div>
+              ) : (
+                <div className="glass p-5" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cream)" }}>Submit your song</p>
+                  <div>
+                    <label style={{ fontSize: 12, color: "var(--text-secondary)", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>
+                      SONG TITLE
+                    </label>
+                    <input
+                      value={songTitle}
+                      onChange={(e) => { setSongTitle(e.target.value); setSubmitError(""); }}
+                      placeholder="Artist – Song Name"
+                      maxLength={60}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: "var(--text-secondary)", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>
+                      YOUTUBE LINK
+                    </label>
+                    <input
+                      value={youtubeUrl}
+                      onChange={(e) => { setYoutubeUrl(e.target.value); setSubmitError(""); }}
+                      placeholder="https://youtube.com/watch?v=..."
+                      type="url"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: "var(--text-secondary)", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>
+                      START AT (optional) — e.g. 1:23 or 83
+                    </label>
+                    <input
+                      value={startTimeInput}
+                      onChange={(e) => setStartTimeInput(e.target.value)}
+                      placeholder="0:00"
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+                  {submitError && <p style={{ color: "var(--danger)", fontSize: 13 }}>{submitError}</p>}
+                  <button className="btn-glow" onClick={submitSong} style={{ width: "100%" }}>
+                    Submit Song 🎵
+                  </button>
+                </div>
+              )}
+
+              {/* Player status */}
+              <div className="glass p-4 text-center">
+                <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 8 }}>
+                  {room.submissions.length} / {room.players.length} submitted
+                </p>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                  {room.players.map((p) => {
+                    const hasSubmitted = room.submissions.find((s) => s.playerId === p.id);
+                    return (
+                      <div key={p.id} style={{
+                        padding: "4px 12px",
+                        borderRadius: 8,
+                        fontSize: 13,
+                        border: "1px solid",
+                        borderColor: hasSubmitted ? "rgba(226,27,27,0.35)" : "var(--glass-border2)",
+                        background: hasSubmitted ? "rgba(226,27,27,0.06)" : "transparent",
+                        color: hasSubmitted ? "var(--cream)" : "var(--text-secondary)",
+                      }}>
+                        {hasSubmitted ? "✓ " : ""}{p.name}
+                      </div>
+                    );
+                  })}
+                </div>
+                <button
+                  className="btn-glow"
+                  onClick={startPlaying}
+                  style={{ marginTop: 16, width: "100%", opacity: allSubmitted ? 1 : 0.6 }}
+                >
+                  {allSubmitted ? "Start Playing ▶" : `Start Anyway (${room.submissions.length} songs)`}
+                </button>
+              </div>
+            </div>
+          )}
+          </div>{/* end submit-grid */}
+        </div>
+      </div>
+    );
+  }
+
+  // PLAYING
+  if (room.phase === "playing" && currentSong) {
+    return (
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: 40 }}>
+        <TopBar hidden />
+        <div className="page-wide pc-split">
+          {/* LEFT — video */}
+          <div className="pc-main" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Song header */}
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+              <div>
+                <p style={{ fontSize: 10, letterSpacing: "0.25em", color: "var(--text-faint)", fontFamily: "'Cormorant Garamond', serif", textTransform: "uppercase" }}>
+                  Song {room.currentSongIndex + 1} of {room.submissions.length}
+                </p>
+                <h2 style={{ fontSize: 24, fontWeight: 300, color: "var(--cream)", marginTop: 4, fontFamily: "'Cormorant Garamond', serif", letterSpacing: "0.04em" }}>
+                  {currentSong.title}
+                </h2>
+                <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2, fontStyle: "italic" }}>
+                  submitted by {currentSong.playerName}
+                </p>
+              </div>
+              {room.songDuration && (
+                <SongTimer key={room.currentSongIndex} duration={room.songDuration} onExpire={isHost ? nextSong : undefined} />
+              )}
+            </div>
+
+            <YouTubePlayer youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} />
+          </div>
+
+          {/* RIGHT — vote panel */}
+          <div className="pc-side" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Category badge */}
+            <div className="glass" style={{ padding: "12px 20px", textAlign: "center" }}>
+              <p style={{ fontSize: 9, letterSpacing: "0.3em", color: "var(--text-faint)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 6 }}>
+                Category
+              </p>
+              <p style={{ fontFamily: "'Pinyon Script', cursive", fontSize: 28, color: "var(--cream)", lineHeight: 1 }}>
+                {room.currentCategory}
+              </p>
+            </div>
+
+            {/* Vote */}
+            <div className="glass" style={{ padding: "24px 20px", textAlign: "center", flex: 1 }}>
+              {isMyOwnSong ? (
+                <div style={{ paddingTop: 16 }}>
+                  <p style={{ fontSize: 28, marginBottom: 12 }}>🎤</p>
+                  <p style={{ color: "var(--text-secondary)", fontSize: 13, fontStyle: "italic" }}>
+                    This is your song.<br />Others are voting now…
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p style={{ fontSize: 10, letterSpacing: "0.2em", color: "var(--text-secondary)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 20 }}>
+                    Rate this song
+                  </p>
+                  <StarVote
+                    onVote={(stars) => castVote(room.currentSongIndex, stars)}
+                    voted={alreadyVoted}
+                  />
+                </div>
+              )}
+              <p style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 20, fontStyle: "italic" }}>
+                {room.submissions.reduce((a, s) => a + s.votes.length, 0)} votes cast
+              </p>
+            </div>
+
+            {/* Players list */}
+            <div className="glass" style={{ padding: "14px 16px" }}>
+              <p style={{ fontSize: 9, letterSpacing: "0.25em", color: "var(--text-faint)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 10 }}>
+                Players
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {room.players.map(p => (
+                  <span key={p.id} style={{
+                    fontSize: 12, padding: "3px 10px",
+                    border: "1px solid var(--glass-border2)",
+                    color: "var(--text-secondary)",
+                    fontFamily: "'Cormorant Garamond', serif",
+                  }}>
+                    {p.isHost ? "👑 " : ""}{p.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {isHost && (
+              <button className="btn-glow" onClick={nextSong} style={{ width: "100%" }}>
+                {room.currentSongIndex + 1 >= room.submissions.length ? "See Results" : "Next Song →"}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // RESULTS
+  if (room.phase === "results") {
+    const tiedIds = tied.length > 1 ? tied.map((t) => t.playerId) : [];
+    return (
+      <div className="page">
+        <TopBar />
+        <div style={{ width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 24 }}>
+          <div className="text-center">
+            <h2 style={{ fontSize: 32, fontWeight: 900, color: "var(--cream)" }}>Results 🏆</h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{room.currentCategory}</p>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {results.map((r, i) => (
+              <div key={r.playerId} className="glass p-4" style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{
+                  fontSize: 28,
+                  fontWeight: 900,
+                  width: 40,
+                  textAlign: "center",
+                  color: i === 0 ? "gold" : i === 1 ? "#aaa" : i === 2 ? "#cd7f32" : "var(--text-secondary)",
+                  textShadow: i === 0 ? "0 0 20px rgba(255,215,0,0.6)" : "none",
+                }}>
+                  {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontWeight: 700, fontSize: 16 }}>{r.playerName}</p>
+                  <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>
+                    {room.submissions.find((s) => s.playerId === r.playerId)?.title}
+                  </p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <p style={{ fontSize: 22, fontWeight: 900, color: "var(--cream)" }}>
+                    {r.avg.toFixed(1)}
+                  </p>
+                  <p style={{ fontSize: 11, color: "var(--text-secondary)" }}>avg ★</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {isHost && tiedIds.length > 1 && (
+            <button
+              className="btn-glow"
+              onClick={() => s.current.emit("start-tiebreaker", { code, tiedPlayerIds: tiedIds })}
+              style={{ width: "100%", borderColor: "rgba(255,200,0,0.4)" }}
+            >
+              Tiebreaker Round 🔥
+            </button>
+          )}
+
+          {isHost && (
+            <button className="btn-glow" onClick={newRound} style={{ width: "100%" }}>
+              New Round
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page">
+      <TopBar />
+      <div className="glass p-8 text-center">
+        <p style={{ color: "var(--text-secondary)" }}>Phase: {room.phase}</p>
+      </div>
+    </div>
+  );
+}
