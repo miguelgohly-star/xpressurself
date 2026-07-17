@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { getSocket } from "@/lib/socket";
@@ -17,6 +17,14 @@ const labelStyle: React.CSSProperties = {
 };
 
 export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomeInner />
+    </Suspense>
+  );
+}
+
+function HomeInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = useSession();
