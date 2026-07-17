@@ -195,7 +195,7 @@ export default function AccountPage() {
 
   if (!session) return null;
 
-  const displayName = session.user.name || username;
+  const displayName = session.user?.name || username;
 
   return (
     <>
@@ -415,7 +415,7 @@ export default function AccountPage() {
             {/* ── Sign Out ── */}
             <Section title="Session">
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <p style={hint}>{session.user.email}</p>
+                <p style={hint}>{session.user?.email}</p>
                 <button
                   onClick={() => signOut({ callbackUrl: "/" })}
                   style={{

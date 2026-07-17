@@ -170,6 +170,24 @@ export default function PlayerView() {
 
   // SUBMITTING
   if (room.phase === "submitting") {
+    const inTiebreaker = room.tiedPlayers.length > 0;
+    const isInTiebreaker = inTiebreaker && room.tiedPlayers.includes(myId ?? "");
+
+    if (inTiebreaker && !isInTiebreaker) {
+      return (
+        <div className="page">
+          <TopBar />
+          <div className="glass p-8 text-center" style={{ maxWidth: 360, width: "100%" }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🔥</div>
+            <h3 style={{ fontSize: 22, fontWeight: 800 }}>Tiebreaker!</h3>
+            <p style={{ color: "var(--text-secondary)", marginTop: 8 }}>
+              Watch the tiebreaker round
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     if (submitted) {
       return (
         <div className="page">
@@ -329,23 +347,6 @@ export default function PlayerView() {
           ))}
           <p style={{ color: "var(--text-secondary)", fontSize: 12, textAlign: "center", marginTop: 8 }}>
             Waiting for host…
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // TIEBREAKER submitting
-  if (room.phase === "submitting" && room.tiedPlayers.length > 0) {
-    const isInTiebreaker = room.tiedPlayers.includes(myId ?? "");
-    return (
-      <div className="page">
-        <TopBar />
-        <div className="glass p-8 text-center" style={{ maxWidth: 360, width: "100%" }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🔥</div>
-          <h3 style={{ fontSize: 22, fontWeight: 800 }}>Tiebreaker!</h3>
-          <p style={{ color: "var(--text-secondary)", marginTop: 8 }}>
-            {isInTiebreaker ? "Submit a new song for the same category" : "Watch the tiebreaker round"}
           </p>
         </div>
       </div>
