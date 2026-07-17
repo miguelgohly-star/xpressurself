@@ -24,11 +24,16 @@ export async function POST(req: Request) {
     const mime = MIME_BY_EXT[ext];
     if (!mime) return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
 
-    // Store the image inline in the database as a data URI — writing to local
-    // disk doesn't survive redeploys/restarts on Railway's ephemeral filesystem.
+    // Store the raw bytes in the database (survives redeploys, unlike local disk
+    // on Railway) but keep `image` a short reference URL — the actual bytes get
+    // served from /api/avatar/[userId] so the JWT session cookie never has to
+    // carry the full image data.
     const bytes = await file.arrayBuffer();
-    const imageUrl = `data:${mime};base64,${Buffer.from(bytes).toString("base64")}`;
-    await prisma.user.update({ where: { id: session.user.id }, data: { image: imageUrl } });
+    const imageUrl = `/api/avatar/${session.user.id}?v=${Date.now()}`;
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { avatarData: Buffer.from(bytes), avatarMime: mime, image: imageUrl },
+    });
 
     return NextResponse.json({ ok: true, image: imageUrl });
   } catch (err) {
