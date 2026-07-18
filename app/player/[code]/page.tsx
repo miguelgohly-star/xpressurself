@@ -38,6 +38,7 @@ export default function PlayerView() {
   const [startTimeInput, setStartTimeInput] = useState("");
   const [error, setError] = useState("");
   const [kicked, setKicked] = useState(false);
+  const [sessionEnded, setSessionEnded] = useState(false);
   const s = useRef(getSocket());
   const myId = s.current.id;
 
@@ -60,6 +61,14 @@ export default function PlayerView() {
     sock.on("kicked", () => {
       setKicked(true);
       setTimeout(() => router.push("/play"), 2500);
+    });
+    // The only thing that emits "error" to this page is a failed reconnect
+    // join (the room no longer exists server-side — e.g. after a server
+    // restart, since game state is in-memory only). Without this, the page
+    // just keeps showing whatever stale room data it last had.
+    sock.on("error", () => {
+      setSessionEnded(true);
+      setTimeout(() => router.push("/play"), 3000);
     });
 
     // Re-emit join-room (not just get-room) on every connect — a dropped
@@ -85,6 +94,7 @@ export default function PlayerView() {
       sock.off("joined");
       sock.off("submit-error");
       sock.off("kicked");
+      sock.off("error");
       sock.off("connect", requestRoom);
     };
   }, [code, router]);
@@ -121,6 +131,18 @@ export default function PlayerView() {
           <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>
             The host removed you from this room. Taking you back…
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (sessionEnded) {
+    return (
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
+        <TopBar />
+        <div className="glass p-8 text-center" style={{ maxWidth: 360, width: "100%" }}>
+          <p style={{ fontSize: 15, marginBottom: 8 }}>This game session has ended.</p>
+          <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>Taking you back to start a new one…</p>
         </div>
       </div>
     );

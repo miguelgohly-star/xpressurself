@@ -92,6 +92,7 @@ export default function HostRoom() {
   const [friendsList, setFriendsList] = useState<FriendUser[]>([]);
   const [inviteMenuOpen, setInviteMenuOpen] = useState(false);
   const [invitedFriendIds, setInvitedFriendIds] = useState<Set<string>>(new Set());
+  const [sessionEnded, setSessionEnded] = useState(false);
   const inviteMenuRef = useRef<HTMLDivElement>(null);
   const s = useRef(getSocket());
 
@@ -103,6 +104,14 @@ export default function HostRoom() {
     sock.on("submit-error", ({ message }: { message: string }) => {
       setSubmitError(message);
       setSubmitted(false);
+    });
+    // The only thing that emits "error" to this page is a failed reconnect
+    // join (the room no longer exists server-side — e.g. after a server
+    // restart, since game state is in-memory only). Without this, the page
+    // just keeps showing whatever stale room data it last had.
+    sock.on("error", () => {
+      setSessionEnded(true);
+      setTimeout(() => router.push("/play"), 3000);
     });
 
     // Re-emit join-room (not just get-room) on every connect — a dropped
@@ -128,6 +137,7 @@ export default function HostRoom() {
       sock.off("joined");
       sock.off("room-created");
       sock.off("submit-error");
+      sock.off("error");
       sock.off("connect", requestRoom);
     };
   }, [code]);
@@ -198,6 +208,18 @@ export default function HostRoom() {
   const kickPlayer = (playerId: string) => {
     s.current.emit("kick-player", { code, playerId });
   };
+
+  if (sessionEnded) {
+    return (
+      <div className="page">
+        <TopBar />
+        <div className="glass p-8 text-center animate-fade-in" style={{ maxWidth: 420 }}>
+          <p style={{ fontSize: 15, marginBottom: 8 }}>This game session has ended.</p>
+          <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>Taking you back to start a new one…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!room) {
     return (
