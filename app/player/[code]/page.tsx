@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import StarVote from "@/components/StarVote";
 import SongSearch from "@/components/SongSearch";
 import Countdown from "@/components/Countdown";
-import YouTubePlayer from "@/components/YouTubePlayer";
+import YouTubePlayer, { isMobileDevice } from "@/components/YouTubePlayer";
 import type { Room } from "@/lib/gameState";
 import { getSocket } from "@/lib/socket";
 import TopBar from "@/components/TopBar";
@@ -333,10 +333,12 @@ export default function PlayerView() {
 
           {showVideo && (
             <>
-              <p style={{ color: "var(--text-secondary)", fontSize: 12, textAlign: "center", fontStyle: "italic" }}>
-                🔊 Tap the video to play it with sound — phones block autoplay with audio
-              </p>
-              <YouTubePlayer youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} autoplay={false} />
+              {isMobileDevice() && (
+                <p style={{ color: "var(--text-secondary)", fontSize: 12, textAlign: "center", fontStyle: "italic" }}>
+                  🔊 Tap the video to play it with sound — phones block autoplay with audio
+                </p>
+              )}
+              <YouTubePlayer youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} />
             </>
           )}
 

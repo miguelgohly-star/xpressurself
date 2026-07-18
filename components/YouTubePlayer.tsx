@@ -5,12 +5,21 @@ interface Props {
   youtubeUrl: string;
   startTime?: number;
   onReady?: () => void;
-  autoplay?: boolean;
+  autoplay?: boolean; // defaults to device-based detection — see isMobileDevice()
 }
 
 function extractVideoId(url: string): string | null {
   const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
   return m ? m[1] : null;
+}
+
+// Mobile browsers block unmuted autoplay of embedded iframes outright — no
+// playerVars or JS-driven play() call can override that. Desktop browsers
+// are far more permissive. Rather than disabling autoplay everywhere, only
+// skip it on devices where it would silently fail anyway.
+export function isMobileDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod|Mobile|IEMobile|Opera Mini/i.test(navigator.userAgent);
 }
 
 declare global {
@@ -20,10 +29,11 @@ declare global {
   }
 }
 
-export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, autoplay = true }: Props) {
+export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, autoplay }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
   const videoId = extractVideoId(youtubeUrl);
+  const shouldAutoplay = autoplay ?? !isMobileDevice();
 
   useEffect(() => {
     if (!videoId || !containerRef.current) return;
@@ -38,16 +48,11 @@ export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, auto
       container.appendChild(div);
       playerRef.current = new window.YT.Player(div, {
         videoId,
-        playerVars: { autoplay: autoplay ? 1 : 0, controls: 1, rel: 0, start },
+        playerVars: { autoplay: shouldAutoplay ? 1 : 0, controls: 1, rel: 0, start },
         events: {
           onReady: (e: any) => {
             if (start > 0) e.target.seekTo(start, true);
-            // Mobile browsers block unmuted autoplay of embedded iframes
-            // regardless of playerVars.autoplay, so forcing playVideo() here
-            // silently fails on phones — let the player tap YouTube's own
-            // on-screen play button instead, which is a real user gesture
-            // and reliably plays with sound.
-            if (autoplay) e.target.playVideo();
+            if (shouldAutoplay) e.target.playVideo();
             onReady?.();
           },
         },
@@ -68,7 +73,7 @@ export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, auto
     return () => {
       if (playerRef.current) { playerRef.current.destroy(); playerRef.current = null; }
     };
-  }, [videoId, startTime, autoplay]);
+  }, [videoId, startTime, shouldAutoplay]);
 
   if (!videoId) {
     return (
