@@ -95,7 +95,7 @@ export default function PlayerView() {
 
   if (!room) {
     return (
-      <div className="page">
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
         <TopBar />
         <div className="glass p-8 text-center">
           <p style={{ color: "var(--text-secondary)" }}>Connecting…</p>
@@ -111,7 +111,7 @@ export default function PlayerView() {
   // LOBBY
   if (room.phase === "lobby") {
     return (
-      <div className="page">
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
         <TopBar />
         <div className="glass p-8 text-center" style={{ maxWidth: 360, width: "100%" }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>🎵</div>
@@ -143,7 +143,7 @@ export default function PlayerView() {
   // STARTING — 3s countdown
   if (room.phase === "starting") {
     return (
-      <div className="page">
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
         <TopBar />
         <div className="glass p-10 text-center animate-fade-in" style={{ maxWidth: 360, width: "100%" }}>
           <p style={{ fontSize: 12, letterSpacing: "0.15em", color: "var(--text-secondary)", marginBottom: 16 }}>GET READY</p>
@@ -157,7 +157,7 @@ export default function PlayerView() {
   // SPINNING
   if (room.phase === "spinning") {
     return (
-      <div className="page">
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
         <TopBar />
         <div className="glass p-8 text-center animate-fade-in" style={{ maxWidth: 360, width: "100%" }}>
           <div style={{ fontSize: 60, marginBottom: 16, animation: "cd-spin 1s linear infinite" }}>💿</div>
@@ -207,7 +207,7 @@ export default function PlayerView() {
     }
 
     return (
-      <div className="page">
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
         <TopBar />
         <div style={{ width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", gap: 20 }}>
           <div className="text-center" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
@@ -265,7 +265,7 @@ export default function PlayerView() {
   if (room.phase === "playing" && currentSong) {
     const showVideo = room.screenMode === "everyone";
     return (
-      <div className="page">
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
         <TopBar hidden />
         <div style={{ width: "100%", maxWidth: showVideo ? 720 : 400, display: "flex", flexDirection: "column", gap: 20 }}>
           <div className="text-center">
@@ -322,7 +322,7 @@ export default function PlayerView() {
       .sort((a, b) => b.avg - a.avg);
 
     return (
-      <div className="page">
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
         <TopBar />
         <div style={{ width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="text-center">
