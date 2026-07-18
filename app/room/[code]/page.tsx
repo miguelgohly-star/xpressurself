@@ -874,7 +874,7 @@ export default function HostRoom() {
   if (room.phase === "results") {
     const tiedIds = tied.length > 1 ? tied.map((t) => t.playerId) : [];
     return (
-      <div className="page">
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
         <TopBar />
         <div style={{ width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 24 }}>
           <div className="text-center">
