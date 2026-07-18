@@ -10,11 +10,14 @@ export type GamePhase =
 export type TimeLimit = 1 | 3 | 5 | null;
 export type SongDuration = 15 | 30 | 60 | null; // seconds, null = unlimited
 export type ScreenMode = "shared" | "everyone"; // "shared" = video plays on host screen only; "everyone" = every player's own device plays it too
+export type RoundLimit = 1 | 3 | 5 | 10;
 
 export interface Player {
   id: string;
   name: string;
   isHost: boolean;
+  totalScore: number; // sum of this player's average score from each completed round
+  roundsPlayed: number; // how many rounds totalScore has been accumulated over
 }
 
 export interface SongSubmission {
@@ -41,6 +44,9 @@ export interface Room {
   submissionDeadline: number | null;
   songDuration: SongDuration;
   screenMode: ScreenMode;
+  roundLimit: RoundLimit;
+  roundNumber: number; // which round of roundLimit we're currently on / just finished
+  gameOver: boolean; // true once roundNumber has reached roundLimit
 }
 
 const DEFAULT_CATEGORIES = [
@@ -74,7 +80,7 @@ export function createRoom(hostId: string, hostName: string): Room {
   const room: Room = {
     code,
     hostId,
-    players: [{ id: hostId, name: hostName, isHost: true }],
+    players: [{ id: hostId, name: hostName, isHost: true, totalScore: 0, roundsPlayed: 0 }],
     phase: "lobby",
     categories: [...DEFAULT_CATEGORIES],
     currentCategory: null,
@@ -86,6 +92,9 @@ export function createRoom(hostId: string, hostName: string): Room {
     submissionDeadline: null,
     songDuration: null,
     screenMode: "shared",
+    roundLimit: 3,
+    roundNumber: 1,
+    gameOver: false,
   };
 
   rooms.set(code, room);
@@ -122,7 +131,7 @@ export function joinRoom(code: string, playerId: string, playerName: string): Ro
   // Brand-new player — only allowed to join while the room is still in the lobby.
   if (room.phase !== "lobby") return null;
   if (room.players.length >= 8) return null;
-  room.players.push({ id: playerId, name: playerName, isHost: false });
+  room.players.push({ id: playerId, name: playerName, isHost: false, totalScore: 0, roundsPlayed: 0 });
   return room;
 }
 
@@ -170,6 +179,17 @@ export function setScreenMode(code: string, mode: ScreenMode): Room | null {
   const room = rooms.get(code);
   if (!room) return null;
   room.screenMode = mode;
+  return room;
+}
+
+export function setRoundLimit(code: string, limit: RoundLimit): Room | null {
+  const room = rooms.get(code);
+  if (!room) return null;
+  room.roundLimit = limit;
+  // Re-derive gameOver against the new limit — e.g. the host raising the
+  // limit after finishing what used to be the last round should let the
+  // game continue instead of staying stuck on a stale "over" flag.
+  room.gameOver = room.roundNumber >= room.roundLimit;
   return room;
 }
 
@@ -256,5 +276,72 @@ export function startTiebreaker(code: string, tiedPlayerIds: string[]): Room | n
     ? Date.now() + room.timeLimit * 60 * 1000
     : null;
   room.round += 1;
+  return room;
+}
+
+// Folds this round's per-song scores into each submitting player's running
+// total, so the results screen can show a cumulative leaderboard across
+// rounds (not just who won this one song). Tiebreaker resolutions reuse the
+// same submitting -> playing -> results flow but keep room.tiedPlayers set,
+// so callers should only invoke this for the original (non-tiebreaker) pass
+// to avoid folding the same round's scores in twice.
+export function finalizeRound(code: string): Room | null {
+  const room = rooms.get(code);
+  if (!room) return null;
+
+  for (const submission of room.submissions) {
+    const player = room.players.find((p) => p.id === submission.playerId);
+    if (!player) continue;
+    const avg = submission.votes.length > 0
+      ? submission.votes.reduce((a, b) => a + b, 0) / submission.votes.length
+      : 0;
+    player.totalScore += avg;
+    player.roundsPlayed += 1;
+  }
+
+  room.gameOver = room.roundNumber >= room.roundLimit;
+  return room;
+}
+
+export function getLeaderboard(room: Room): { playerId: string; playerName: string; avg: number; roundsPlayed: number }[] {
+  return room.players
+    .map((p) => ({
+      playerId: p.id,
+      playerName: p.name,
+      avg: p.roundsPlayed > 0 ? p.totalScore / p.roundsPlayed : 0,
+      roundsPlayed: p.roundsPlayed,
+    }))
+    .sort((a, b) => b.avg - a.avg);
+}
+
+export function advanceRound(code: string): Room | null {
+  const room = rooms.get(code);
+  if (!room) return null;
+  if (room.gameOver) return room;
+  room.phase = "lobby";
+  room.currentCategory = null;
+  room.submissions = [];
+  room.currentSongIndex = 0;
+  room.tiedPlayers = [];
+  room.submissionDeadline = null;
+  room.roundNumber += 1;
+  return room;
+}
+
+export function restartGame(code: string): Room | null {
+  const room = rooms.get(code);
+  if (!room) return null;
+  room.phase = "lobby";
+  room.currentCategory = null;
+  room.submissions = [];
+  room.currentSongIndex = 0;
+  room.tiedPlayers = [];
+  room.submissionDeadline = null;
+  room.roundNumber = 1;
+  room.gameOver = false;
+  for (const p of room.players) {
+    p.totalScore = 0;
+    p.roundsPlayed = 0;
+  }
   return room;
 }

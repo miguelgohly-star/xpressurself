@@ -8,7 +8,7 @@ import StarVote from "@/components/StarVote";
 import SongSearch from "@/components/SongSearch";
 import Countdown from "@/components/Countdown";
 import QRCode from "react-qr-code";
-import type { Room, TimeLimit, SongDuration, ScreenMode } from "@/lib/gameState";
+import type { Room, TimeLimit, SongDuration, ScreenMode, RoundLimit } from "@/lib/gameState";
 import { getSocket } from "@/lib/socket";
 import TopBar from "@/components/TopBar";
 
@@ -244,6 +244,13 @@ export default function HostRoom() {
     setVotedSongs(new Set());
     s.current.emit("new-round", { code });
   };
+  const restartGame = () => {
+    setSubmitted(false);
+    setYoutubeUrl("");
+    setSongTitle("");
+    setVotedSongs(new Set());
+    s.current.emit("restart-game", { code });
+  };
 
   const castVote = (songIndex: number, stars: number) => {
     s.current.emit("cast-vote", { code, songIndex, stars });
@@ -277,6 +284,10 @@ export default function HostRoom() {
 
   const setScreenModeOption = (mode: ScreenMode) => {
     s.current.emit("set-screen-mode", { code, mode });
+  };
+
+  const setRoundLimitOption = (limit: RoundLimit) => {
+    s.current.emit("set-round-limit", { code, limit });
   };
 
   const results = getResults(room);
@@ -506,6 +517,25 @@ export default function HostRoom() {
                         ? "Every player also gets the video on their own device."
                         : "Only this screen plays the video — players just vote."}
                     </p>
+
+                    <p style={{ ...colLabel, marginTop: 14, marginBottom: 6 }}>Rounds</p>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {([1, 3, 5, 10] as RoundLimit[]).map((limit) => (
+                        <button
+                          key={limit}
+                          onClick={() => setRoundLimitOption(limit)}
+                          style={{
+                            flex: 1, padding: "6px 4px", borderRadius: 0, border: "1px solid",
+                            borderColor: room.roundLimit === limit ? "rgba(226,27,27,0.5)" : "var(--glass-border2)",
+                            background: room.roundLimit === limit ? "rgba(226,27,27,0.08)" : "transparent",
+                            color: room.roundLimit === limit ? "var(--cream)" : "var(--text-secondary)",
+                            cursor: "pointer", fontWeight: 700, fontSize: 13, transition: "all 0.15s",
+                          }}
+                        >
+                          {limit}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -525,6 +555,12 @@ export default function HostRoom() {
                       <p style={{ ...colLabel, marginBottom: 6 }}>Screen Mode</p>
                       <p style={{ fontSize: 14, color: "var(--text-secondary)", fontFamily: "'Cormorant Garamond', serif" }}>
                         {room.screenMode === "everyone" ? "Everyone's Screen" : "One Screen"}
+                      </p>
+                    </div>
+                    <div>
+                      <p style={{ ...colLabel, marginBottom: 6 }}>Rounds</p>
+                      <p style={{ fontSize: 14, color: "var(--text-secondary)", fontFamily: "'Cormorant Garamond', serif" }}>
+                        {room.roundLimit}
                       </p>
                     </div>
                     <p style={{ fontSize: 11, color: "var(--text-faint)", fontStyle: "italic", marginTop: 4 }}>
@@ -895,13 +931,21 @@ export default function HostRoom() {
   // RESULTS
   if (room.phase === "results") {
     const tiedIds = tied.length > 1 ? tied.map((t) => t.playerId) : [];
+    const leaderboard = [...room.players]
+      .map((p) => ({ ...p, avg: p.roundsPlayed > 0 ? p.totalScore / p.roundsPlayed : 0 }))
+      .sort((a, b) => b.avg - a.avg);
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
         <TopBar />
         <div style={{ width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 24 }}>
           <div className="text-center">
-            <h2 style={{ fontSize: 32, fontWeight: 900, color: "var(--cream)" }}>Results 🏆</h2>
+            <h2 style={{ fontSize: 32, fontWeight: 900, color: "var(--cream)" }}>
+              {room.gameOver ? "Game Over 🏆" : "Results 🏆"}
+            </h2>
             <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{room.currentCategory}</p>
+            <p style={{ color: "var(--text-faint)", fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", marginTop: 4 }}>
+              Round {Math.min(room.roundNumber, room.roundLimit)} of {room.roundLimit}
+            </p>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -943,10 +987,44 @@ export default function HostRoom() {
             </button>
           )}
 
+          <div>
+            <p style={{
+              fontSize: 10, letterSpacing: "0.25em", color: "var(--text-faint)",
+              textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif",
+              textAlign: "center", marginBottom: 10,
+            }}>
+              Overall Leaderboard
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {leaderboard.map((p, i) => (
+                <div key={p.id} className="glass p-3" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{
+                    fontSize: 18, fontWeight: 900, width: 28, textAlign: "center",
+                    color: i === 0 ? "gold" : i === 1 ? "#aaa" : i === 2 ? "#cd7f32" : "var(--text-secondary)",
+                  }}>
+                    {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
+                  </div>
+                  <p style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>
+                    {p.isHost ? "👑 " : ""}{p.name}
+                  </p>
+                  <p style={{ fontSize: 16, fontWeight: 900, color: "var(--cream)" }}>
+                    {p.avg.toFixed(1)} <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 400 }}>avg</span>
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {isHost && (
-            <button className="btn-glow" onClick={newRound} style={{ width: "100%" }}>
-              New Round
-            </button>
+            room.gameOver ? (
+              <button className="btn-glow" onClick={restartGame} style={{ width: "100%" }}>
+                🏆 Play Again
+              </button>
+            ) : (
+              <button className="btn-glow" onClick={newRound} style={{ width: "100%" }}>
+                Next Round →
+              </button>
+            )
           )}
         </div>
       </div>

@@ -375,13 +375,19 @@ export default function PlayerView() {
         title: s.title,
       }))
       .sort((a, b) => b.avg - a.avg);
+    const leaderboard = [...room.players]
+      .map((p) => ({ ...p, avg: p.roundsPlayed > 0 ? p.totalScore / p.roundsPlayed : 0 }))
+      .sort((a, b) => b.avg - a.avg);
 
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
         <TopBar />
         <div style={{ width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="text-center">
-            <h2 style={{ fontSize: 26, fontWeight: 900 }}>Results 🏆</h2>
+            <h2 style={{ fontSize: 26, fontWeight: 900 }}>{room.gameOver ? "Game Over 🏆" : "Results 🏆"}</h2>
+            <p style={{ color: "var(--text-faint)", fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", marginTop: 4 }}>
+              Round {Math.min(room.roundNumber, room.roundLimit)} of {room.roundLimit}
+            </p>
           </div>
           {results.map((r, i) => (
             <div key={r.playerId} className="glass p-4" style={{
@@ -400,8 +406,34 @@ export default function PlayerView() {
               <p style={{ fontSize: 20, fontWeight: 900, color: "var(--cream)" }}>{r.avg.toFixed(1)}★</p>
             </div>
           ))}
+
+          <div style={{ marginTop: 8 }}>
+            <p style={{
+              fontSize: 10, letterSpacing: "0.2em", color: "var(--text-faint)",
+              textTransform: "uppercase", textAlign: "center", marginBottom: 8,
+            }}>
+              Overall Leaderboard
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {leaderboard.map((p, i) => (
+                <div key={p.id} className="glass p-3" style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  borderColor: p.id === myId ? "rgba(226,27,27,0.35)" : undefined,
+                }}>
+                  <span style={{ fontSize: 18, minWidth: 28, textAlign: "center", fontWeight: 900 }}>
+                    {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
+                  </span>
+                  <p style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>
+                    {p.isHost ? "👑 " : ""}{p.name} {p.id === myId ? "(you)" : ""}
+                  </p>
+                  <p style={{ fontSize: 16, fontWeight: 900, color: "var(--cream)" }}>{p.avg.toFixed(1)}★</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <p style={{ color: "var(--text-secondary)", fontSize: 12, textAlign: "center", marginTop: 8 }}>
-            Waiting for host…
+            {room.gameOver ? "Waiting for host to start a new game…" : "Waiting for host…"}
           </p>
         </div>
       </div>

@@ -13,13 +13,18 @@ import {
   setTimeLimit,
   setSongDuration,
   setScreenMode,
+  setRoundLimit,
   submitSong,
   castVote,
   nextSong,
   startTiebreaker,
+  finalizeRound,
+  advanceRound,
+  restartGame,
   type TimeLimit,
   type SongDuration,
   type ScreenMode,
+  type RoundLimit,
 } from "./lib/gameState";
 
 const dev = process.env.NODE_ENV !== "production";
@@ -241,6 +246,13 @@ app.prepare().then(() => {
       io.to(code).emit("room-updated", getRoom(code));
     });
 
+    socket.on("set-round-limit", ({ code, limit }: { code: string; limit: RoundLimit }) => {
+      const room = getRoom(code);
+      if (!room || socket.id !== room.hostId) return;
+      setRoundLimit(code, limit);
+      io.to(code).emit("room-updated", getRoom(code));
+    });
+
     socket.on("set-categories", ({ code, categories }: { code: string; categories: string[] }) => {
       const room = getRoom(code);
       if (!room || socket.id !== room.hostId) return;
@@ -263,6 +275,13 @@ app.prepare().then(() => {
       if (!updated) return;
 
       if (updated.currentSongIndex >= updated.submissions.length) {
+        // A tiebreaker replays the same round for just the tied players, so
+        // only fold scores into the cumulative leaderboard on the original
+        // (non-tiebreaker) pass — otherwise those players' scores would be
+        // counted twice for what is really still one round.
+        if (updated.tiedPlayers.length === 0) {
+          finalizeRound(code);
+        }
         setPhase(code, "results");
         io.to(code).emit("room-updated", getRoom(code));
       } else {
@@ -285,16 +304,20 @@ app.prepare().then(() => {
       const timer = submissionTimers.get(code);
       if (timer) clearTimeout(timer);
       submissionTimers.delete(code);
-      setPhase(code, "lobby");
-      const updated = getRoom(code);
-      if (updated) {
-        updated.currentCategory = null;
-        updated.submissions = [];
-        updated.currentSongIndex = 0;
-        updated.tiedPlayers = [];
-        updated.submissionDeadline = null;
-      }
-      io.to(code).emit("room-updated", getRoom(code));
+      const updated = advanceRound(code);
+      if (!updated) return;
+      io.to(code).emit("room-updated", updated);
+    });
+
+    socket.on("restart-game", ({ code }: { code: string }) => {
+      const room = getRoom(code);
+      if (!room || socket.id !== room.hostId) return;
+      const timer = submissionTimers.get(code);
+      if (timer) clearTimeout(timer);
+      submissionTimers.delete(code);
+      const updated = restartGame(code);
+      if (!updated) return;
+      io.to(code).emit("room-updated", updated);
     });
 
     socket.on("get-room", ({ code }: { code: string }) => {
