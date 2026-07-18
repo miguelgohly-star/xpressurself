@@ -1,4 +1,6 @@
 import { createServer } from "http";
+import { createReadStream, promises as fs } from "fs";
+import path from "path";
 import { Server } from "socket.io";
 import next from "next";
 import {
@@ -26,9 +28,72 @@ const handle = app.getRequestHandler();
 // Track per-room submission timers so we can clear them
 const submissionTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
+const MIME_TYPES: Record<string, string> = {
+  ".js": "application/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".webp": "image/webp",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".txt": "text/plain; charset=utf-8",
+};
+
+// Serve static assets (public/ files and built _next/static/ chunks) directly
+// off disk, bypassing Next's request handler. Routing every request — even
+// tiny static images — through Next's full pipeline adds real per-request
+// overhead, which is especially costly under a resource-limited host. Falls
+// through to `handle()` (returns false) for anything that isn't a plain file.
+async function serveStaticFile(req: import("http").IncomingMessage, res: import("http").ServerResponse): Promise<boolean> {
+  const url = req.url ?? "/";
+  if (req.method !== "GET" && req.method !== "HEAD") return false;
+
+  const isNextStatic = url.startsWith("/_next/static/");
+  const isPublicCandidate = !url.startsWith("/_next/") && !url.startsWith("/api/") && path.extname(url.split("?")[0]) !== "";
+  if (!isNextStatic && !isPublicCandidate) return false;
+
+  const relPath = decodeURIComponent(url.split("?")[0]);
+  const base = isNextStatic ? path.join(process.cwd(), ".next", "static") : path.join(process.cwd(), "public");
+  const filePath = isNextStatic
+    ? path.join(base, relPath.replace("/_next/static/", ""))
+    : path.join(base, relPath);
+
+  // Guard against path traversal outside the intended base directory.
+  if (!filePath.startsWith(base)) return false;
+
+  try {
+    const stat = await fs.stat(filePath);
+    if (!stat.isFile()) return false;
+
+    res.setHeader("Content-Type", MIME_TYPES[path.extname(filePath)] ?? "application/octet-stream");
+    res.setHeader("Content-Length", stat.size);
+    res.setHeader(
+      "Cache-Control",
+      isNextStatic ? "public, max-age=31536000, immutable" : "public, max-age=3600"
+    );
+    if (req.method === "HEAD") { res.end(); return true; }
+    await new Promise<void>((resolve, reject) => {
+      const stream = createReadStream(filePath);
+      stream.on("error", reject);
+      stream.on("end", resolve);
+      stream.pipe(res);
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 app.prepare().then(() => {
   const httpServer = createServer((req, res) => {
-    handle(req, res);
+    serveStaticFile(req, res).then((handled) => {
+      if (!handled) handle(req, res);
+    });
   });
 
   const io = new Server(httpServer, { cors: { origin: "*" } });
