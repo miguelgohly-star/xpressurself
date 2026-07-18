@@ -197,7 +197,7 @@ export default function PlayerView() {
 
     if (inTiebreaker && !isInTiebreaker) {
       return (
-        <div className="page">
+        <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
           <TopBar />
           <div className="glass p-8 text-center" style={{ maxWidth: 360, width: "100%" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🔥</div>
@@ -212,7 +212,7 @@ export default function PlayerView() {
 
     if (submitted) {
       return (
-        <div className="page">
+        <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
           <TopBar />
           <div className="glass p-8 text-center animate-fade-in" style={{ maxWidth: 360, width: "100%" }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
@@ -376,7 +376,7 @@ export default function PlayerView() {
   }
 
   return (
-    <div className="page">
+    <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
       <TopBar />
       <div className="glass p-8 text-center">
         <p style={{ color: "var(--text-secondary)" }}>Phase: {room?.phase}</p>
