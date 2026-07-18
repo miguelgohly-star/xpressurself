@@ -332,7 +332,12 @@ export default function PlayerView() {
           </div>
 
           {showVideo && (
-            <YouTubePlayer youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} />
+            <>
+              <p style={{ color: "var(--text-secondary)", fontSize: 12, textAlign: "center", fontStyle: "italic" }}>
+                🔊 Tap the video to play it with sound — phones block autoplay with audio
+              </p>
+              <YouTubePlayer youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} autoplay={false} />
+            </>
           )}
 
           <div className="glass p-8 text-center">

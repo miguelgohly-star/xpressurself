@@ -5,6 +5,7 @@ interface Props {
   youtubeUrl: string;
   startTime?: number;
   onReady?: () => void;
+  autoplay?: boolean;
 }
 
 function extractVideoId(url: string): string | null {
@@ -19,7 +20,7 @@ declare global {
   }
 }
 
-export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady }: Props) {
+export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, autoplay = true }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
   const videoId = extractVideoId(youtubeUrl);
@@ -37,11 +38,16 @@ export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady }: Pr
       container.appendChild(div);
       playerRef.current = new window.YT.Player(div, {
         videoId,
-        playerVars: { autoplay: 1, controls: 1, rel: 0, start },
+        playerVars: { autoplay: autoplay ? 1 : 0, controls: 1, rel: 0, start },
         events: {
           onReady: (e: any) => {
             if (start > 0) e.target.seekTo(start, true);
-            e.target.playVideo();
+            // Mobile browsers block unmuted autoplay of embedded iframes
+            // regardless of playerVars.autoplay, so forcing playVideo() here
+            // silently fails on phones — let the player tap YouTube's own
+            // on-screen play button instead, which is a real user gesture
+            // and reliably plays with sound.
+            if (autoplay) e.target.playVideo();
             onReady?.();
           },
         },
@@ -62,7 +68,7 @@ export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady }: Pr
     return () => {
       if (playerRef.current) { playerRef.current.destroy(); playerRef.current = null; }
     };
-  }, [videoId, startTime]);
+  }, [videoId, startTime, autoplay]);
 
   if (!videoId) {
     return (
