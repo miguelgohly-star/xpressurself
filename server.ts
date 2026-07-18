@@ -7,6 +7,7 @@ import {
   createRoom,
   getRoom,
   joinRoom,
+  leaveRoom,
   setPhase,
   setCategory,
   setTimeLimit,
@@ -98,6 +99,15 @@ app.prepare().then(() => {
 
   const io = new Server(httpServer, { cors: { origin: "*" } });
 
+  // Which room each connected socket is currently in, so a disconnect can
+  // find its room without the client having to tell us.
+  const socketRoomCode = new Map<string, string>();
+  // Grace-period timers before a disconnected player is actually removed —
+  // gives a dropped connection/refresh a chance to reconnect and rejoin
+  // instead of instantly vanishing from the player list.
+  const disconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  const DISCONNECT_GRACE_MS = 60_000;
+
   function beginCountdownThenPlay(code: string) {
     setPhase(code, "starting");
     io.to(code).emit("room-updated", getRoom(code));
@@ -132,6 +142,7 @@ app.prepare().then(() => {
     socket.on("create-room", ({ hostName }: { hostName: string }) => {
       const room = createRoom(socket.id, hostName);
       socket.join(room.code);
+      socketRoomCode.set(socket.id, room.code);
       socket.emit("room-created", room);
     });
 
@@ -142,6 +153,7 @@ app.prepare().then(() => {
         return;
       }
       socket.join(code.toUpperCase());
+      socketRoomCode.set(socket.id, code.toUpperCase());
       io.to(code.toUpperCase()).emit("room-updated", room);
       socket.emit("joined", room);
     });
@@ -195,6 +207,15 @@ app.prepare().then(() => {
         submissionTimers.delete(code);
         beginCountdownThenPlay(code);
       }
+    });
+
+    socket.on("kick-player", ({ code, playerId }: { code: string; playerId: string }) => {
+      const room = getRoom(code);
+      if (!room || socket.id !== room.hostId) return;
+      if (playerId === room.hostId) return; // host can't kick themselves
+      const updated = leaveRoom(code, playerId);
+      io.to(playerId).emit("kicked");
+      if (updated) io.to(code).emit("room-updated", updated);
     });
 
     socket.on("start-playing", ({ code }: { code: string }) => {
@@ -280,6 +301,7 @@ app.prepare().then(() => {
       const room = getRoom(code);
       if (!room) return;
       socket.join(code);
+      socketRoomCode.set(socket.id, code);
       socket.emit("room-updated", room);
     });
 
@@ -292,7 +314,19 @@ app.prepare().then(() => {
       io.to(`user:${to}`).emit("friend-typing", { from });
     });
 
-    socket.on("disconnect", () => {});
+    socket.on("disconnect", () => {
+      const code = socketRoomCode.get(socket.id);
+      socketRoomCode.delete(socket.id);
+      if (!code) return;
+
+      const playerId = socket.id;
+      const timer = setTimeout(() => {
+        disconnectTimers.delete(playerId);
+        const updated = leaveRoom(code, playerId);
+        if (updated) io.to(code).emit("room-updated", updated);
+      }, DISCONNECT_GRACE_MS);
+      disconnectTimers.set(playerId, timer);
+    });
   });
 
   const port = parseInt(process.env.PORT || "3000", 10);

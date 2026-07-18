@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import StarVote from "@/components/StarVote";
 import SongSearch from "@/components/SongSearch";
 import Countdown from "@/components/Countdown";
@@ -29,6 +29,7 @@ function PlayerCountdown() {
 
 export default function PlayerView() {
   const { code } = useParams<{ code: string }>();
+  const router = useRouter();
   const [room, setRoom] = useState<Room | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [songTitle, setSongTitle] = useState("");
@@ -36,6 +37,7 @@ export default function PlayerView() {
   const [votedSongs, setVotedSongs] = useState<Set<number>>(new Set());
   const [startTimeInput, setStartTimeInput] = useState("");
   const [error, setError] = useState("");
+  const [kicked, setKicked] = useState(false);
   const s = useRef(getSocket());
   const myId = s.current.id;
 
@@ -55,6 +57,10 @@ export default function PlayerView() {
       setError(message);
       setSubmitted(false);
     });
+    sock.on("kicked", () => {
+      setKicked(true);
+      setTimeout(() => router.push("/play"), 2500);
+    });
 
     const requestRoom = () => sock.emit("get-room", { code });
     if (sock.connected) {
@@ -67,9 +73,10 @@ export default function PlayerView() {
       sock.off("room-updated");
       sock.off("joined");
       sock.off("submit-error");
+      sock.off("kicked");
       sock.off("connect", requestRoom);
     };
-  }, [code]);
+  }, [code, router]);
 
   const parseStartTime = (val: string): number => {
     const parts = val.trim().split(":").map(Number);
@@ -92,6 +99,21 @@ export default function PlayerView() {
     s.current.emit("cast-vote", { code, songIndex, stars });
     setVotedSongs((prev) => new Set([...prev, songIndex]));
   };
+
+  if (kicked) {
+    return (
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
+        <TopBar />
+        <div className="glass p-8 text-center" style={{ maxWidth: 360, width: "100%" }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>👋</div>
+          <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Removed from the room</h2>
+          <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>
+            The host removed you from this room. Taking you back…
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!room) {
     return (

@@ -185,6 +185,10 @@ export default function HostRoom() {
     if (res.ok) setInvitedFriendIds(prev => new Set([...prev, friendId]));
   };
 
+  const kickPlayer = (playerId: string) => {
+    s.current.emit("kick-player", { code, playerId });
+  };
+
   if (!room) {
     return (
       <div className="page">
@@ -563,6 +567,7 @@ export default function HostRoom() {
                   display: "flex", alignItems: "center", gap: 8,
                   border: "1px solid var(--glass-border2)",
                   padding: "5px 12px 5px 5px",
+                  position: "relative",
                 }}>
                   <div style={{
                     width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
@@ -580,6 +585,23 @@ export default function HostRoom() {
                       fontSize: 9, letterSpacing: "0.12em", color: "rgba(226,27,27,0.75)",
                       fontFamily: "'Cormorant Garamond', serif", textTransform: "uppercase",
                     }}>Host</span>
+                  )}
+                  {isHost && !p.isHost && (
+                    <button
+                      onClick={() => kickPlayer(p.id)}
+                      title={`Remove ${p.name}`}
+                      aria-label={`Remove ${p.name}`}
+                      style={{
+                        position: "absolute", top: -6, right: -6,
+                        width: 16, height: 16, borderRadius: "50%",
+                        background: "var(--glass)", border: "1px solid var(--glass-border2)",
+                        color: "var(--text-faint)", fontSize: 9, lineHeight: 1,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        cursor: "pointer", padding: 0, transition: "all 0.15s",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.color = "rgba(226,27,27,0.85)"; e.currentTarget.style.borderColor = "rgba(226,27,27,0.4)"; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = "var(--text-faint)"; e.currentTarget.style.borderColor = "var(--glass-border2)"; }}
+                    >✕</button>
                   )}
                 </div>
               ))}
