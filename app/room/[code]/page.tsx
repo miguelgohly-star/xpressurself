@@ -211,7 +211,7 @@ export default function HostRoom() {
 
   if (sessionEnded) {
     return (
-      <div className="page">
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
         <TopBar />
         <div className="glass p-8 text-center animate-fade-in" style={{ maxWidth: 420 }}>
           <p style={{ fontSize: 15, marginBottom: 8 }}>This game session has ended.</p>
@@ -223,7 +223,7 @@ export default function HostRoom() {
 
   if (!room) {
     return (
-      <div className="page">
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
         <TopBar />
         <div className="glass p-8 text-center animate-fade-in">
           <p style={{ color: "var(--text-secondary)" }}>Connecting…</p>
@@ -702,7 +702,7 @@ export default function HostRoom() {
   // STARTING — 3-second countdown
   if (room.phase === "starting") {
     return (
-      <div className="page">
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
         <TopBar />
         <div className="glass p-12 text-center animate-fade-in" style={{ maxWidth: 400 }}>
           <p style={{ fontSize: 13, letterSpacing: "0.15em", color: "var(--text-secondary)", marginBottom: 16 }}>GET READY</p>
@@ -1032,7 +1032,7 @@ export default function HostRoom() {
   }
 
   return (
-    <div className="page">
+    <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
       <TopBar />
       <div className="glass p-8 text-center">
         <p style={{ color: "var(--text-secondary)" }}>Phase: {room.phase}</p>
