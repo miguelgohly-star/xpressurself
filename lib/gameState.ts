@@ -18,6 +18,7 @@ export interface Player {
   isHost: boolean;
   totalScore: number; // sum of this player's average score from each completed round
   roundsPlayed: number; // how many rounds totalScore has been accumulated over
+  avatarUrl: string | null; // signed-in user's uploaded profile picture, if any
 }
 
 export interface SongSubmission {
@@ -73,14 +74,14 @@ function generateCode(): string {
   return Math.random().toString(36).substring(2, 7).toUpperCase();
 }
 
-export function createRoom(hostId: string, hostName: string): Room {
+export function createRoom(hostId: string, hostName: string, avatarUrl: string | null = null): Room {
   let code = generateCode();
   while (rooms.has(code)) code = generateCode();
 
   const room: Room = {
     code,
     hostId,
-    players: [{ id: hostId, name: hostName, isHost: true, totalScore: 0, roundsPlayed: 0 }],
+    players: [{ id: hostId, name: hostName, isHost: true, totalScore: 0, roundsPlayed: 0, avatarUrl }],
     phase: "lobby",
     categories: [...DEFAULT_CATEGORIES],
     currentCategory: null,
@@ -105,7 +106,7 @@ export function getRoom(code: string): Room | undefined {
   return rooms.get(code);
 }
 
-export function joinRoom(code: string, playerId: string, playerName: string): Room | null {
+export function joinRoom(code: string, playerId: string, playerName: string, avatarUrl: string | null = null): Room | null {
   const room = rooms.get(code);
   if (!room) return null;
 
@@ -124,6 +125,7 @@ export function joinRoom(code: string, playerId: string, playerName: string): Ro
   if (existingByName) {
     const wasHost = existingByName.isHost;
     existingByName.id = playerId;
+    existingByName.avatarUrl = avatarUrl;
     if (wasHost) room.hostId = playerId;
     return room;
   }
@@ -131,7 +133,7 @@ export function joinRoom(code: string, playerId: string, playerName: string): Ro
   // Brand-new player — only allowed to join while the room is still in the lobby.
   if (room.phase !== "lobby") return null;
   if (room.players.length >= 8) return null;
-  room.players.push({ id: playerId, name: playerName, isHost: false, totalScore: 0, roundsPlayed: 0 });
+  room.players.push({ id: playerId, name: playerName, isHost: false, totalScore: 0, roundsPlayed: 0, avatarUrl });
   return room;
 }
 

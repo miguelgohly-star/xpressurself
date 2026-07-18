@@ -11,6 +11,7 @@ import QRCode from "react-qr-code";
 import type { Room, TimeLimit, SongDuration, ScreenMode, RoundLimit } from "@/lib/gameState";
 import { getSocket } from "@/lib/socket";
 import TopBar from "@/components/TopBar";
+import PlayerAvatar from "@/components/PlayerAvatar";
 
 interface WheelOption { id: string; name: string; categories: { name: string }[]; }
 interface FriendUser { id: string; username: string; image: string | null; }
@@ -122,7 +123,7 @@ export default function HostRoom() {
     const requestRoom = () => {
       const storedName = sessionStorage.getItem("playerName");
       if (storedName) {
-        sock.emit("join-room", { code, playerName: storedName });
+        sock.emit("join-room", { code, playerName: storedName, avatarUrl: session?.user?.image ?? null });
       } else {
         sock.emit("get-room", { code });
       }
@@ -140,7 +141,7 @@ export default function HostRoom() {
       sock.off("error");
       sock.off("connect", requestRoom);
     };
-  }, [code]);
+  }, [code, session?.user?.image]);
 
   // Fetch user's custom wheels if signed in
   useEffect(() => {
@@ -637,11 +638,7 @@ export default function HostRoom() {
                   padding: "5px 12px 5px 5px",
                   position: "relative",
                 }}>
-                  <div style={{
-                    width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
-                    background: "var(--glass-2)", display: "flex", alignItems: "center", justifyContent: "center",
-                    fontFamily: "'Pinyon Script', cursive", fontSize: 14, color: "var(--text-dark)",
-                  }}>{p.name[0]?.toUpperCase()}</div>
+                  <PlayerAvatar name={p.name} avatarUrl={p.avatarUrl} size={26} />
                   <span style={{
                     fontSize: 13, color: "var(--cream-dim)",
                     fontFamily: "'Cormorant Garamond', serif", fontWeight: 300,
@@ -906,11 +903,13 @@ export default function HostRoom() {
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {room.players.map(p => (
                   <span key={p.id} style={{
-                    fontSize: 12, padding: "3px 10px",
+                    display: "flex", alignItems: "center", gap: 6,
+                    fontSize: 12, padding: "3px 10px 3px 4px",
                     border: "1px solid var(--glass-border2)",
                     color: "var(--text-secondary)",
                     fontFamily: "'Cormorant Garamond', serif",
                   }}>
+                    <PlayerAvatar name={p.name} avatarUrl={p.avatarUrl} size={18} />
                     {p.isHost ? "👑 " : ""}{p.name}
                   </span>
                 ))}
@@ -1004,6 +1003,7 @@ export default function HostRoom() {
                   }}>
                     {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
                   </div>
+                  <PlayerAvatar name={p.name} avatarUrl={p.avatarUrl} size={24} />
                   <p style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>
                     {p.isHost ? "👑 " : ""}{p.name}
                   </p>

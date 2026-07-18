@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import StarVote from "@/components/StarVote";
 import SongSearch from "@/components/SongSearch";
 import Countdown from "@/components/Countdown";
@@ -8,6 +9,7 @@ import YouTubePlayer, { isMobileDevice } from "@/components/YouTubePlayer";
 import type { Room } from "@/lib/gameState";
 import { getSocket } from "@/lib/socket";
 import TopBar from "@/components/TopBar";
+import PlayerAvatar from "@/components/PlayerAvatar";
 
 function PlayerCountdown() {
   const [n, setN] = useState(3);
@@ -30,6 +32,7 @@ function PlayerCountdown() {
 export default function PlayerView() {
   const { code } = useParams<{ code: string }>();
   const router = useRouter();
+  const { data: session } = useSession();
   const [room, setRoom] = useState<Room | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [songTitle, setSongTitle] = useState("");
@@ -79,7 +82,7 @@ export default function PlayerView() {
     const requestRoom = () => {
       const storedName = sessionStorage.getItem("playerName");
       if (storedName) {
-        sock.emit("join-room", { code, playerName: storedName });
+        sock.emit("join-room", { code, playerName: storedName, avatarUrl: session?.user?.image ?? null });
       } else {
         sock.emit("get-room", { code });
       }
@@ -97,7 +100,7 @@ export default function PlayerView() {
       sock.off("error");
       sock.off("connect", requestRoom);
     };
-  }, [code, router]);
+  }, [code, router, session?.user?.image]);
 
   const parseStartTime = (val: string): number => {
     const parts = val.trim().split(":").map(Number);
@@ -177,12 +180,14 @@ export default function PlayerView() {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, justifyContent: "center" }}>
             {room.players.map((p) => (
               <div key={p.id} style={{
-                padding: "4px 12px",
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "4px 12px 4px 4px",
                 borderRadius: 20,
                 background: "var(--glass-2)",
                 border: "1px solid var(--glass-border2)",
                 fontSize: 13,
               }}>
+                <PlayerAvatar name={p.name} avatarUrl={p.avatarUrl} size={20} />
                 {p.isHost ? "👑 " : ""}{p.name}
               </div>
             ))}
@@ -430,6 +435,7 @@ export default function PlayerView() {
                   <span style={{ fontSize: 18, minWidth: 28, textAlign: "center", fontWeight: 900 }}>
                     {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `#${i + 1}`}
                   </span>
+                  <PlayerAvatar name={p.name} avatarUrl={p.avatarUrl} size={22} />
                   <p style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>
                     {p.isHost ? "👑 " : ""}{p.name} {p.id === myId ? "(you)" : ""}
                   </p>

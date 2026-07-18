@@ -70,7 +70,7 @@ function HomeInner() {
     if (!hostName.trim()) return setError("Enter your name");
     setLoading(true);
     const s = getSocket();
-    s.emit("create-room", { hostName: hostName.trim() });
+    s.emit("create-room", { hostName: hostName.trim(), avatarUrl: session?.user?.image ?? null });
     s.once("room-created", (room: any) => {
       sessionStorage.setItem("playerId", s.id!);
       sessionStorage.setItem("playerName", hostName.trim());
@@ -83,7 +83,7 @@ function HomeInner() {
     if (!joinCode.trim()) return setError("Enter room code");
     setLoading(true);
     const s = getSocket();
-    s.emit("join-room", { code: joinCode.trim().toUpperCase(), playerName: joinName.trim() });
+    s.emit("join-room", { code: joinCode.trim().toUpperCase(), playerName: joinName.trim(), avatarUrl: session?.user?.image ?? null });
     s.once("joined", (room: any) => {
       sessionStorage.setItem("playerId", s.id!);
       sessionStorage.setItem("playerName", joinName.trim());

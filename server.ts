@@ -144,15 +144,15 @@ app.prepare().then(() => {
   }
 
   io.on("connection", (socket) => {
-    socket.on("create-room", ({ hostName }: { hostName: string }) => {
-      const room = createRoom(socket.id, hostName);
+    socket.on("create-room", ({ hostName, avatarUrl }: { hostName: string; avatarUrl?: string | null }) => {
+      const room = createRoom(socket.id, hostName, avatarUrl ?? null);
       socket.join(room.code);
       socketRoomCode.set(socket.id, room.code);
       socket.emit("room-created", room);
     });
 
-    socket.on("join-room", ({ code, playerName }: { code: string; playerName: string }) => {
-      const room = joinRoom(code.toUpperCase(), socket.id, playerName);
+    socket.on("join-room", ({ code, playerName, avatarUrl }: { code: string; playerName: string; avatarUrl?: string | null }) => {
+      const room = joinRoom(code.toUpperCase(), socket.id, playerName, avatarUrl ?? null);
       if (!room) {
         socket.emit("error", { message: "Room not found or full" });
         return;
