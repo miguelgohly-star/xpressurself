@@ -17,22 +17,22 @@ export default function TopBar({ hidden = false }: { hidden?: boolean }) {
       <button onClick={() => router.push("/")} className="topbar__logo">xpressurself</button>
       <nav className="topbar__nav">
         <button onClick={() => router.push("/play")} className="topbar__navItem">
-          <img src="/play-song-wars-keys.png" alt=""/>
+          <img src="/play-song-wars-keys.webp" alt=""/>
           <span>play song wars</span>
         </button>
         <button onClick={() => router.push(session ? "/wheels" : "/auth?callbackUrl=/wheels")} className="topbar__navItem">
-          <img src="/wheels-cd-icon.png" alt=""/>
+          <img src="/wheels-cd-icon.webp" alt=""/>
           <span>your wheels</span>
         </button>
         {session && (
           <button onClick={() => router.push("/friends")} className="topbar__navItem">
-            <img src="/friends-cat-icon.png" alt=""/>
+            <img src="/friends-cat-icon.webp" alt=""/>
             <span>friends &amp; messages</span>
           </button>
         )}
         <button onClick={() => router.push(session ? "/account" : "/auth")} className="topbar__navItem">
           <img
-            src={session?.user?.image || "/profile-camcorder.png"}
+            src={session?.user?.image || "/profile-camcorder.webp"}
             alt=""
             className={session?.user?.image ? undefined : "topbar__navItem__profileImg"}
           />

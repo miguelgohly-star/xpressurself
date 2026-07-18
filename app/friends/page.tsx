@@ -384,7 +384,7 @@ export default function FriendsPage() {
                     </div>
                   </div>
                   <button className="ig-icon-btn" onClick={inviteToGame} disabled={inviting} title="Invite to game">
-                    <img src="/wheels-cd-icon.png" alt="" style={{ width: 17, height: 17, borderRadius: "50%" }}/>
+                    <img src="/wheels-cd-icon.webp" alt="" style={{ width: 17, height: 17, borderRadius: "50%" }}/>
                   </button>
                   <button className="ig-icon-btn" onClick={() => fetchMessages(selected.id)} title="Refresh">⟳</button>
                 </div>

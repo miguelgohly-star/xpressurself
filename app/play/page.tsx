@@ -97,7 +97,7 @@ function HomeInner() {
 
   return (
     <>
-      <img src="/play-bg.png" alt="" style={{
+      <img src="/play-bg.webp" alt="" style={{
         position: "fixed", inset: 0, width: "100%", height: "100%",
         zIndex: 0, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
       }}/>

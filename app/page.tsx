@@ -52,22 +52,22 @@ export default function LandingPage() {
         <span className="topbar__logo">xpressurself</span>
         <nav className="topbar__nav">
           <button onClick={() => router.push("/play")} className="topbar__navItem">
-            <img src="/play-song-wars-keys.png" alt=""/>
+            <img src="/play-song-wars-keys.webp" alt=""/>
             <span>play song wars</span>
           </button>
           <button onClick={() => router.push(session ? "/wheels" : "/auth?callbackUrl=/wheels")} className="topbar__navItem">
-            <img src="/wheels-cd-icon.png" alt=""/>
+            <img src="/wheels-cd-icon.webp" alt=""/>
             <span>your wheels</span>
           </button>
           {session && (
             <button onClick={() => router.push("/friends")} className="topbar__navItem">
-              <img src="/friends-cat-icon.png" alt=""/>
+              <img src="/friends-cat-icon.webp" alt=""/>
               <span>friends &amp; messages</span>
             </button>
           )}
           <button onClick={() => router.push(session ? "/account" : "/auth")} className="topbar__navItem">
             <img
-              src={session?.user?.image || "/profile-camcorder.png"}
+              src={session?.user?.image || "/profile-camcorder.webp"}
               alt=""
               className={session?.user?.image ? undefined : "topbar__navItem__profileImg"}
             />
@@ -102,12 +102,12 @@ export default function LandingPage() {
         {/* ── The carousel — turn it with the arrows, then jump straight in ── */}
         <div style={{ opacity: loaded ? 1 : 0, transition: "opacity 1s ease 0.55s" }}>
           <Carousel3D items={[
-            { id: "play",    label: "Play Song Wars",     image: "/play-song-wars-keys.png", href: "/play" },
-            { id: "wheels",  label: "Your Wheels",        image: "/wheels-cd-icon.png",   href: session ? "/wheels" : "/auth?callbackUrl=/wheels" },
-            ...(session ? [{ id: "friends", label: "Friends & Messages", image: "/friends-cat-icon.png", href: "/friends" }] : []),
+            { id: "play",    label: "Play Song Wars",     image: "/play-song-wars-keys.webp", href: "/play" },
+            { id: "wheels",  label: "Your Wheels",        image: "/wheels-cd-icon.webp",   href: session ? "/wheels" : "/auth?callbackUrl=/wheels" },
+            ...(session ? [{ id: "friends", label: "Friends & Messages", image: "/friends-cat-icon.webp", href: "/friends" }] : []),
             {
               id: "profile", label: session ? "Your Profile" : "Sign In",
-              image: "/profile-camcorder.png", href: session ? "/account" : "/auth",
+              image: "/profile-camcorder.webp", href: session ? "/account" : "/auth",
               overlay: session?.user?.image ? {
                 // Measured from the source art, then adjusted for the vertical
                 // crop object-fit:cover applies at the card's 240x150 ratio.
