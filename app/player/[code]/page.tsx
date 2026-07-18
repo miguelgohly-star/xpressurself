@@ -62,12 +62,23 @@ export default function PlayerView() {
       setTimeout(() => router.push("/play"), 2500);
     });
 
-    const requestRoom = () => sock.emit("get-room", { code });
+    // Re-emit join-room (not just get-room) on every connect — a dropped
+    // connection reconnects with a brand-new socket id, and only join-room
+    // reclaims this player's existing slot server-side (see joinRoom's
+    // reclaim-by-name logic). Using .on instead of .once means this also
+    // fires on later reconnects, not just the first connection.
+    const requestRoom = () => {
+      const storedName = sessionStorage.getItem("playerName");
+      if (storedName) {
+        sock.emit("join-room", { code, playerName: storedName });
+      } else {
+        sock.emit("get-room", { code });
+      }
+    };
     if (sock.connected) {
       requestRoom();
-    } else {
-      sock.once("connect", requestRoom);
     }
+    sock.on("connect", requestRoom);
 
     return () => {
       sock.off("room-updated");

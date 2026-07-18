@@ -105,13 +105,23 @@ export default function HostRoom() {
       setSubmitted(false);
     });
 
-    // Request current state in case we navigated here after events already fired
-    const requestRoom = () => sock.emit("get-room", { code });
+    // Re-emit join-room (not just get-room) on every connect — a dropped
+    // connection reconnects with a brand-new socket id, and only join-room
+    // reclaims this host's existing slot server-side (see joinRoom's
+    // reclaim-by-name logic, which also restores room.hostId). Using .on
+    // instead of .once means this also fires on later reconnects.
+    const requestRoom = () => {
+      const storedName = sessionStorage.getItem("playerName");
+      if (storedName) {
+        sock.emit("join-room", { code, playerName: storedName });
+      } else {
+        sock.emit("get-room", { code });
+      }
+    };
     if (sock.connected) {
       requestRoom();
-    } else {
-      sock.once("connect", requestRoom);
     }
+    sock.on("connect", requestRoom);
 
     return () => {
       sock.off("room-updated");

@@ -99,13 +99,30 @@ export function getRoom(code: string): Room | undefined {
 export function joinRoom(code: string, playerId: string, playerName: string): Room | null {
   const room = rooms.get(code);
   if (!room) return null;
-  if (room.players.length >= 8) return null;
-  if (room.phase !== "lobby") return null;
 
-  const exists = room.players.find((p) => p.id === playerId);
-  if (!exists) {
-    room.players.push({ id: playerId, name: playerName, isHost: false });
+  const existingById = room.players.find((p) => p.id === playerId);
+  if (existingById) return room;
+
+  // A dropped connection (network blip, backgrounded mobile tab, etc.) comes
+  // back with a brand-new socket id — Socket.io doesn't preserve the old one.
+  // Recognize the same person by name and reclaim their existing slot rather
+  // than treating them as a new join, so a real reconnect works at any phase
+  // of the game, not just in the lobby.
+  const trimmedName = playerName.trim();
+  const existingByName = room.players.find(
+    (p) => p.name.toLowerCase() === trimmedName.toLowerCase()
+  );
+  if (existingByName) {
+    const wasHost = existingByName.isHost;
+    existingByName.id = playerId;
+    if (wasHost) room.hostId = playerId;
+    return room;
   }
+
+  // Brand-new player — only allowed to join while the room is still in the lobby.
+  if (room.phase !== "lobby") return null;
+  if (room.players.length >= 8) return null;
+  room.players.push({ id: playerId, name: playerName, isHost: false });
   return room;
 }
 
