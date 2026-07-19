@@ -831,92 +831,57 @@ export default function HostRoom() {
 
   // PLAYING
   if (room.phase === "playing" && currentSong) {
-    // Full-bleed background art (public/voting-bg.webp, 1672x941) with the
-    // video layered directly on top of its painted-on screen. The wrapper
-    // below is a pure-CSS "contain" box: it fills the viewport but is
-    // capped by whichever of width/height would break the source image's
-    // aspect ratio, so the art is always shown in full (letterboxed on
-    // mismatched screens) rather than cropped or stretched.
-    const BG_SCREEN = { left: 26.6, top: 28.83, width: 27.17, height: 33.85 };
     return (
-      <div style={{ position: "fixed", inset: 0, background: "#000", overflow: "hidden" }}>
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: 40 }}>
         <TopBar hidden />
-        <div style={{
-          position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-          width: "100vw", height: "100vh",
-          maxWidth: "calc(100vh * 1672 / 941)",
-          maxHeight: "calc(100vw * 941 / 1672)",
-          aspectRatio: "1672 / 941",
-        }}>
-          <img
-            src="/voting-bg.webp"
-            alt=""
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 0, pointerEvents: "none" }}
-          />
-
-          {/* Screen cutout — sits above the background, filled by the video */}
-          <div style={{
-            position: "absolute",
-            left: `${BG_SCREEN.left}%`, top: `${BG_SCREEN.top}%`,
-            width: `${BG_SCREEN.width}%`, height: `${BG_SCREEN.height}%`,
-            background: "#050402",
-            overflow: "hidden",
-            zIndex: 1,
-          }}>
-            {/* True 16:9 video, letterboxed/centered within the (slightly taller) cutout */}
-            <div style={{ position: "absolute", top: "50%", left: 0, width: "100%", aspectRatio: "16/9", transform: "translateY(-50%)" }}>
-              <YouTubePlayer bare youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} />
-            </div>
-          </div>
-
-          {/* Song header — top center */}
-          <div style={{
-            position: "absolute", top: "3%", left: "50%", transform: "translateX(-50%)",
-            textAlign: "center", zIndex: 2, width: "70%",
-          }}>
-            <p style={{ fontSize: 10, letterSpacing: "0.25em", color: "var(--text-faint)", fontFamily: "'Cormorant Garamond', serif", textTransform: "uppercase" }}>
-              Song {room.currentSongIndex + 1} of {room.submissions.length}
-            </p>
-            <h2 style={{ fontSize: 22, fontWeight: 300, color: "var(--cream)", marginTop: 4, fontFamily: "'Cormorant Garamond', serif", letterSpacing: "0.04em" }}>
-              {currentSong.title}
-            </h2>
-            <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2, fontStyle: "italic" }}>
-              submitted by {currentSong.playerName}
-            </p>
-            {room.songDuration && (
-              <div style={{ display: "flex", justifyContent: "center", marginTop: 6 }}>
-                <SongTimer key={room.currentSongIndex} duration={room.songDuration} onExpire={isHost ? nextSong : undefined} />
+        <div className="page-wide pc-split">
+          {/* LEFT — video */}
+          <div className="pc-main" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Song header */}
+            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
+              <div>
+                <p style={{ fontSize: 10, letterSpacing: "0.25em", color: "var(--text-faint)", fontFamily: "'Cormorant Garamond', serif", textTransform: "uppercase" }}>
+                  Song {room.currentSongIndex + 1} of {room.submissions.length}
+                </p>
+                <h2 style={{ fontSize: 24, fontWeight: 300, color: "var(--cream)", marginTop: 4, fontFamily: "'Cormorant Garamond', serif", letterSpacing: "0.04em" }}>
+                  {currentSong.title}
+                </h2>
+                <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2, fontStyle: "italic" }}>
+                  submitted by {currentSong.playerName}
+                </p>
               </div>
-            )}
+              {room.songDuration && (
+                <SongTimer key={room.currentSongIndex} duration={room.songDuration} onExpire={isHost ? nextSong : undefined} />
+              )}
+            </div>
+
+            <YouTubePlayer youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} />
           </div>
 
-          {/* Vote panel — right side */}
-          <div style={{
-            position: "absolute", top: "8%", right: "2%", width: "27%", zIndex: 2,
-            display: "flex", flexDirection: "column", gap: 12,
-          }}>
+          {/* RIGHT — vote panel */}
+          <div className="pc-side" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Category badge */}
-            <div className="glass" style={{ padding: "10px 16px", textAlign: "center" }}>
+            <div className="glass" style={{ padding: "12px 20px", textAlign: "center" }}>
               <p style={{ fontSize: 9, letterSpacing: "0.3em", color: "var(--text-faint)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 6 }}>
                 Category
               </p>
-              <p style={{ fontFamily: "'Pinyon Script', cursive", fontSize: 22, color: "var(--cream)", lineHeight: 1 }}>
+              <p style={{ fontFamily: "'Pinyon Script', cursive", fontSize: 28, color: "var(--cream)", lineHeight: 1 }}>
                 {room.currentCategory}
               </p>
             </div>
 
             {/* Vote */}
-            <div className="glass" style={{ padding: "16px", textAlign: "center" }}>
+            <div className="glass" style={{ padding: "24px 20px", textAlign: "center", flex: 1 }}>
               {isMyOwnSong ? (
-                <div style={{ paddingTop: 8 }}>
-                  <p style={{ fontSize: 22, marginBottom: 8 }}>🎤</p>
-                  <p style={{ color: "var(--text-secondary)", fontSize: 12, fontStyle: "italic" }}>
+                <div style={{ paddingTop: 16 }}>
+                  <p style={{ fontSize: 28, marginBottom: 12 }}>🎤</p>
+                  <p style={{ color: "var(--text-secondary)", fontSize: 13, fontStyle: "italic" }}>
                     This is your song.<br />Others are voting now…
                   </p>
                 </div>
               ) : (
                 <div>
-                  <p style={{ fontSize: 10, letterSpacing: "0.2em", color: "var(--text-secondary)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 14 }}>
+                  <p style={{ fontSize: 10, letterSpacing: "0.2em", color: "var(--text-secondary)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 20 }}>
                     Rate this song
                   </p>
                   <StarVote
@@ -925,26 +890,26 @@ export default function HostRoom() {
                   />
                 </div>
               )}
-              <p style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 14, fontStyle: "italic" }}>
+              <p style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 20, fontStyle: "italic" }}>
                 {room.submissions.reduce((a, s) => a + s.votes.length, 0)} votes cast
               </p>
             </div>
 
             {/* Players list */}
-            <div className="glass" style={{ padding: "10px 12px" }}>
-              <p style={{ fontSize: 9, letterSpacing: "0.25em", color: "var(--text-faint)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 8 }}>
+            <div className="glass" style={{ padding: "14px 16px" }}>
+              <p style={{ fontSize: 9, letterSpacing: "0.25em", color: "var(--text-faint)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 10 }}>
                 Players
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {room.players.map(p => (
                   <span key={p.id} style={{
                     display: "flex", alignItems: "center", gap: 6,
-                    fontSize: 11, padding: "3px 8px 3px 4px",
+                    fontSize: 12, padding: "3px 10px 3px 4px",
                     border: "1px solid var(--glass-border2)",
                     color: "var(--text-secondary)",
                     fontFamily: "'Cormorant Garamond', serif",
                   }}>
-                    <PlayerAvatar name={p.name} avatarUrl={p.avatarUrl} size={16} />
+                    <PlayerAvatar name={p.name} avatarUrl={p.avatarUrl} size={18} />
                     {p.isHost ? "👑 " : ""}{p.name}
                   </span>
                 ))}
