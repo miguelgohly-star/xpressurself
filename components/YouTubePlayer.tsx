@@ -6,6 +6,7 @@ interface Props {
   startTime?: number;
   onReady?: () => void;
   autoplay?: boolean; // defaults to device-based detection — see isMobileDevice()
+  bare?: boolean; // skip the built-in TV background art — just the video + CRT overlays, sized to fill the parent
 }
 
 function extractVideoId(url: string): string | null {
@@ -29,7 +30,7 @@ declare global {
   }
 }
 
-export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, autoplay }: Props) {
+export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, autoplay, bare = false }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
   const videoId = extractVideoId(youtubeUrl);
@@ -85,6 +86,51 @@ export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, auto
     );
   }
 
+  const videoWithOverlays = (
+    <>
+      <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+
+      {/* Scanlines overlay */}
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.14) 2px, rgba(0,0,0,0.14) 4px)",
+        pointerEvents: "none",
+        zIndex: 2,
+      }} />
+
+      {/* Warm vignette */}
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        background: "radial-gradient(ellipse at center, transparent 55%, rgba(8,6,4,0.65) 100%)",
+        pointerEvents: "none",
+        zIndex: 3,
+      }} />
+
+      {/* Subtle warm top glare */}
+      <div style={{
+        position: "absolute",
+        top: 0, left: 0, right: 0,
+        height: "25%",
+        background: "linear-gradient(180deg, rgba(242,236,227,0.025) 0%, transparent 100%)",
+        pointerEvents: "none",
+        zIndex: 4,
+      }} />
+    </>
+  );
+
+  // Caller (e.g. a full-screen background layout) supplies its own art and
+  // positioning — we just fill whatever box we're given with the video and
+  // the CRT-style overlays.
+  if (bare) {
+    return (
+      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+        {videoWithOverlays}
+      </div>
+    );
+  }
+
   // Measured from the source artwork (public/tv-background.webp, 1400x788):
   // the screen cutout is a flat, axis-aligned rectangle at these bounds. The
   // background image has no alpha cutout there, so instead of masking it we
@@ -105,35 +151,7 @@ export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, auto
       }}>
         {/* True 16:9 video, letterboxed/centered within the (slightly taller) cutout */}
         <div style={{ position: "absolute", top: "50%", left: 0, width: "100%", aspectRatio: "16/9", transform: "translateY(-50%)" }}>
-          <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
-
-          {/* Scanlines overlay */}
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.14) 2px, rgba(0,0,0,0.14) 4px)",
-            pointerEvents: "none",
-            zIndex: 2,
-          }} />
-
-          {/* Warm vignette */}
-          <div style={{
-            position: "absolute",
-            inset: 0,
-            background: "radial-gradient(ellipse at center, transparent 55%, rgba(8,6,4,0.65) 100%)",
-            pointerEvents: "none",
-            zIndex: 3,
-          }} />
-
-          {/* Subtle warm top glare */}
-          <div style={{
-            position: "absolute",
-            top: 0, left: 0, right: 0,
-            height: "25%",
-            background: "linear-gradient(180deg, rgba(242,236,227,0.025) 0%, transparent 100%)",
-            pointerEvents: "none",
-            zIndex: 4,
-          }} />
+          {videoWithOverlays}
         </div>
       </div>
 
