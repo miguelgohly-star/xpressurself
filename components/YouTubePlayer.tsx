@@ -85,16 +85,16 @@ export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, auto
     );
   }
 
-  // Measured from the source artwork (public/tv-border.webp, 1200x856): the
-  // screen cutout is a flat, axis-aligned rectangle at these bounds. The
-  // frame image has no alpha cutout there, so instead of masking it we just
-  // layer the video ON TOP of the frame, sized to cover that exact area —
-  // the frame's own painted-on "screen" never shows through.
-  const SCREEN = { left: 18.65, top: 16.43, width: 64.11, height: 61.19 };
+  // Measured from the source artwork (public/tv-background.webp, 1400x788):
+  // the screen cutout is a flat, axis-aligned rectangle at these bounds. The
+  // background image has no alpha cutout there, so instead of masking it we
+  // just layer the video ON TOP of the background, sized to cover that exact
+  // area — the artwork's own painted-on "screen" never shows through.
+  const SCREEN = { left: 35.43, top: 19.72, width: 35.27, height: 43.07 };
 
   return (
-    <div style={{ width: "100%", maxWidth: 720, margin: "0 auto", position: "relative", aspectRatio: "1200/856" }}>
-      {/* Screen cutout — sits behind the frame image, filled by the video */}
+    <div style={{ width: "100%", maxWidth: 720, margin: "0 auto", position: "relative", aspectRatio: "1400/788" }}>
+      {/* Screen cutout — sits behind the background image, filled by the video */}
       <div style={{
         position: "absolute",
         left: `${SCREEN.left}%`, top: `${SCREEN.top}%`,
@@ -137,9 +137,9 @@ export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, auto
         </div>
       </div>
 
-      {/* Frame artwork on top */}
+      {/* Background artwork on top */}
       <img
-        src="/tv-border.webp"
+        src="/tv-background.webp"
         alt=""
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 5, pointerEvents: "none" }}
       />
