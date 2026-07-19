@@ -7,23 +7,35 @@ interface Props {
   voted?: boolean;
 }
 
-function HalfStar({ fill }: { fill: "empty" | "half" | "full" }) {
+// Custom grunge-style star icon (public/star-icon.webp) used as a CSS mask —
+// its own pixels are solid white on a transparent background, so masking a
+// colored div with it works the same whether the browser treats the mask as
+// alpha- or luminance-based, and we get the exact app accent red rather than
+// fighting CSS filters to recolor a black-line-art PNG.
+const maskStyle: React.CSSProperties = {
+  WebkitMaskImage: "url(/star-icon.webp)",
+  maskImage: "url(/star-icon.webp)",
+  WebkitMaskSize: "contain",
+  maskSize: "contain",
+  WebkitMaskRepeat: "no-repeat",
+  maskRepeat: "no-repeat",
+  WebkitMaskPosition: "center",
+  maskPosition: "center",
+};
+
+function HalfStar({ fill, size = 36 }: { fill: "empty" | "half" | "full"; size?: number }) {
   return (
-    <svg width="36" height="36" viewBox="0 0 36 36" style={{ display: "block" }}>
-      <defs>
-        <linearGradient id={`g-${fill}`} x1="0" x2="1" y1="0" y2="0">
-          <stop offset="50%" stopColor={fill === "empty" ? "rgba(30,26,20,0.18)" : "#e21b1b"} />
-          <stop offset="50%" stopColor={fill === "full" ? "#e21b1b" : "rgba(30,26,20,0.18)"} />
-        </linearGradient>
-      </defs>
-      <text
-        x="18" y="28"
-        textAnchor="middle"
-        fontSize="30"
-        fill={`url(#g-${fill})`}
-        style={{ userSelect: "none" }}
-      >★</text>
-    </svg>
+    <div style={{ position: "relative", width: size, height: size }}>
+      <div style={{ position: "absolute", inset: 0, background: "rgba(30,26,20,0.18)", ...maskStyle }} />
+      {fill !== "empty" && (
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "#e21b1b",
+          clipPath: fill === "half" ? "inset(0 50% 0 0)" : "inset(0 0 0 0)",
+          ...maskStyle,
+        }} />
+      )}
+    </div>
   );
 }
 

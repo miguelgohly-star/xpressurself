@@ -843,6 +843,35 @@ export default function HostRoom() {
           backgroundImage: "url(/voting-page-bg.webp)", backgroundSize: "cover", backgroundPosition: "center",
         }} />
         <TopBar hidden />
+
+        {/* Vote card — floats over the open background area above the TV */}
+        <div className="glass" style={{
+          position: "absolute", top: "4%", left: "4%", width: "clamp(260px, 32%, 380px)",
+          padding: "20px 24px", textAlign: "center", zIndex: 2,
+        }}>
+          {isMyOwnSong ? (
+            <div>
+              <p style={{ fontSize: 28, marginBottom: 12 }}>🎤</p>
+              <p style={{ color: "var(--text-secondary)", fontSize: 13, fontStyle: "italic" }}>
+                This is your song.<br />Others are voting now…
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p style={{ fontSize: 10, letterSpacing: "0.2em", color: "var(--text-secondary)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 20 }}>
+                Rate this song
+              </p>
+              <StarVote
+                onVote={(stars) => castVote(room.currentSongIndex, stars)}
+                voted={alreadyVoted}
+              />
+            </div>
+          )}
+          <p style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 20, fontStyle: "italic" }}>
+            {room.submissions.reduce((a, s) => a + s.votes.length, 0)} votes cast
+          </p>
+        </div>
+
         <div className="page-wide pc-split">
           {/* LEFT — video */}
           <div className="pc-main" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -867,7 +896,7 @@ export default function HostRoom() {
             <YouTubePlayer youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} />
           </div>
 
-          {/* RIGHT — vote panel */}
+          {/* RIGHT — category / players / next-song */}
           <div className="pc-side" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Category badge */}
             <div className="glass" style={{ padding: "12px 20px", textAlign: "center" }}>
@@ -876,31 +905,6 @@ export default function HostRoom() {
               </p>
               <p style={{ fontFamily: "'Pinyon Script', cursive", fontSize: 28, color: "var(--cream)", lineHeight: 1 }}>
                 {room.currentCategory}
-              </p>
-            </div>
-
-            {/* Vote */}
-            <div className="glass" style={{ padding: "24px 20px", textAlign: "center", flex: 1 }}>
-              {isMyOwnSong ? (
-                <div style={{ paddingTop: 16 }}>
-                  <p style={{ fontSize: 28, marginBottom: 12 }}>🎤</p>
-                  <p style={{ color: "var(--text-secondary)", fontSize: 13, fontStyle: "italic" }}>
-                    This is your song.<br />Others are voting now…
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <p style={{ fontSize: 10, letterSpacing: "0.2em", color: "var(--text-secondary)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 20 }}>
-                    Rate this song
-                  </p>
-                  <StarVote
-                    onVote={(stars) => castVote(room.currentSongIndex, stars)}
-                    voted={alreadyVoted}
-                  />
-                </div>
-              )}
-              <p style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 20, fontStyle: "italic" }}>
-                {room.submissions.reduce((a, s) => a + s.votes.length, 0)} votes cast
               </p>
             </div>
 
