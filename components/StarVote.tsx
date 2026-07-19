@@ -6,6 +6,7 @@ interface Props {
   disabled?: boolean;
   voted?: boolean;
   activeColor?: string;
+  size?: number;
 }
 
 // Custom grunge-style star icon (public/star-icon.webp) used as a CSS mask —
@@ -40,9 +41,10 @@ function HalfStar({ fill, size = 36, color = "#e21b1b" }: { fill: "empty" | "hal
   );
 }
 
-export default function StarVote({ onVote, disabled, voted, activeColor }: Props) {
+export default function StarVote({ onVote, disabled, voted, activeColor, size = 36 }: Props) {
   const [hovered, setHovered] = useState(0);
   const [selected, setSelected] = useState(0);
+  const gap = Math.round(size / 4);
 
   const getValue = (starIndex: number, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -60,7 +62,7 @@ export default function StarVote({ onVote, disabled, voted, activeColor }: Props
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-      <div style={{ display: "flex", gap: 6 }}>
+      <div style={{ display: "flex", gap }}>
         {[1, 2, 3, 4, 5].map((s) => (
           <div
             key={s}
@@ -79,7 +81,7 @@ export default function StarVote({ onVote, disabled, voted, activeColor }: Props
               transform: (hovered === s || hovered === s - 0.5) ? "scale(1.2)" : "scale(1)",
             }}
           >
-            <HalfStar fill={fillFor(s)} color={activeColor} />
+            <HalfStar fill={fillFor(s)} color={activeColor} size={size} />
           </div>
         ))}
       </div>

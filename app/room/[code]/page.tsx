@@ -96,7 +96,7 @@ export default function HostRoom() {
   const [sessionEnded, setSessionEnded] = useState(false);
   const inviteMenuRef = useRef<HTMLDivElement>(null);
   const tvWrapperRef = useRef<HTMLDivElement>(null);
-  const [tvTopCenter, setTvTopCenter] = useState<{ x: number; y: number } | null>(null);
+  const [tvTopCenter, setTvTopCenter] = useState<{ x: number; y: number; width: number } | null>(null);
   const s = useRef(getSocket());
 
   // Keep the floating star-vote row locked exactly above the TV frame,
@@ -122,6 +122,7 @@ export default function HostRoom() {
       setTvTopCenter({
         x: (elRect.left - pageRect.left + elRect.width / 2) / zoom,
         y: (elRect.top - pageRect.top) / zoom,
+        width: elRect.width / zoom,
       });
     }
     measure();
@@ -883,7 +884,7 @@ export default function HostRoom() {
           <div style={{
             position: "absolute",
             left: tvTopCenter.x, top: tvTopCenter.y,
-            transform: "translate(-50%, calc(-100% - 14px))",
+            transform: "translate(-50%, calc(-100% - 26px))",
             textAlign: "center", zIndex: 2,
           }}>
             {isMyOwnSong ? (
@@ -898,6 +899,7 @@ export default function HostRoom() {
                 onVote={(stars) => castVote(room.currentSongIndex, stars)}
                 voted={alreadyVoted}
                 activeColor="#1a1611"
+                size={Math.min(28, tvTopCenter.width * 0.12)}
               />
             )}
             <p style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 10, fontStyle: "italic" }}>
@@ -933,19 +935,19 @@ export default function HostRoom() {
           </div>
 
           {/* RIGHT — category / players / next-song */}
-          <div className="pc-side" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="pc-side" style={{ display: "flex", flexDirection: "column", gap: 28 }}>
             {/* Category badge */}
-            <div className="glass" style={{ padding: "12px 20px", textAlign: "center" }}>
-              <p style={{ fontSize: 9, letterSpacing: "0.3em", color: "var(--text-faint)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 6 }}>
+            <div className="glass" style={{ width: "100%", boxSizing: "border-box", padding: "22px 20px", textAlign: "center", borderRadius: 28 }}>
+              <p style={{ fontSize: 9, letterSpacing: "0.3em", color: "var(--text-faint)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 8 }}>
                 Category
               </p>
-              <p style={{ fontFamily: "'Pinyon Script', cursive", fontSize: 28, color: "var(--cream)", lineHeight: 1 }}>
+              <p style={{ fontFamily: "'Pinyon Script', cursive", fontSize: 28, color: "var(--cream)", lineHeight: 1.2 }}>
                 {room.currentCategory}
               </p>
             </div>
 
             {/* Players list */}
-            <div className="glass" style={{ padding: "14px 16px" }}>
+            <div className="glass" style={{ width: "100%", boxSizing: "border-box", padding: "20px 18px", borderRadius: 28 }}>
               <p style={{ fontSize: 9, letterSpacing: "0.25em", color: "var(--text-faint)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 10 }}>
                 Players
               </p>
@@ -966,7 +968,7 @@ export default function HostRoom() {
             </div>
 
             {isHost && (
-              <button className="btn-glow" onClick={nextSong} style={{ width: "100%" }}>
+              <button className="btn-glow" onClick={nextSong} style={{ width: "100%", boxSizing: "border-box", borderRadius: 8, padding: "10px 28px" }}>
                 {room.currentSongIndex + 1 >= room.submissions.length ? "See Results" : "Next Song →"}
               </button>
             )}
