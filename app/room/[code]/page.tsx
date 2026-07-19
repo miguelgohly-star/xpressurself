@@ -832,10 +832,16 @@ export default function HostRoom() {
   // PLAYING
   if (room.phase === "playing" && currentSong) {
     return (
-      <div className="page" style={{
-        justifyContent: "flex-start", paddingTop: 40,
-        backgroundImage: "url(/voting-page-bg.webp)", backgroundSize: "cover", backgroundPosition: "center",
-      }}>
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: 40 }}>
+        {/* Fixed to the viewport rather than sized with .page's own box —
+            this content can grow taller than 100vh (two-column layout on a
+            short viewport), and background-size:cover would otherwise scale
+            against that overflowed height instead of the actual screen,
+            zooming in and cropping the art unrecognizably. */}
+        <div style={{
+          position: "fixed", inset: 0, zIndex: -1,
+          backgroundImage: "url(/voting-page-bg.webp)", backgroundSize: "cover", backgroundPosition: "center",
+        }} />
         <TopBar hidden />
         <div className="page-wide pc-split">
           {/* LEFT — video */}

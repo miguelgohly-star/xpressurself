@@ -131,7 +131,7 @@ export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, auto
     );
   }
 
-  // Measured from the source artwork (public/tv-border-alpha.webp, 1483x1061):
+  // Measured from the source artwork (public/tv-border-alpha-v2.webp, 1483x1061):
   // the screen cutout is a real transparent hole in the frame (found by
   // flood-filling the enclosed near-white region and taking its bounding
   // box), so the frame can sit ON TOP of the video and its edges genuinely
@@ -158,7 +158,7 @@ export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, auto
 
       {/* Frame artwork on top — transparent screen hole lets the video show through */}
       <img
-        src="/tv-border-alpha.webp"
+        src="/tv-border-alpha-v2.webp"
         alt=""
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 5, pointerEvents: "none" }}
       />
