@@ -131,16 +131,17 @@ export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, auto
     );
   }
 
-  // Measured from the source artwork (public/tv-background.webp, 1400x788):
-  // the screen cutout is a flat, axis-aligned rectangle at these bounds. The
-  // background image has no alpha cutout there, so instead of masking it we
-  // just layer the video ON TOP of the background, sized to cover that exact
-  // area — the artwork's own painted-on "screen" never shows through.
-  const SCREEN = { left: 35.43, top: 19.72, width: 35.27, height: 43.07 };
+  // Measured from the source artwork (public/tv-border-alpha.webp, 1483x1061):
+  // the screen cutout is a real transparent hole in the frame (found by
+  // flood-filling the enclosed near-white region and taking its bounding
+  // box), so the frame can sit ON TOP of the video and its edges genuinely
+  // overlap/cover the video's edges, instead of the video having to be
+  // layered over a flat painted-on rectangle.
+  const SCREEN = { left: 20.77, top: 16.97, width: 59.95, height: 56.93 };
 
   return (
-    <div style={{ width: "100%", maxWidth: 720, margin: "0 auto", position: "relative", aspectRatio: "1400/788" }}>
-      {/* Screen cutout — sits behind the background image, filled by the video */}
+    <div style={{ width: "100%", maxWidth: 720, margin: "0 auto", position: "relative", aspectRatio: "1483/1061" }}>
+      {/* Screen cutout — sits behind the frame, filled by the video */}
       <div style={{
         position: "absolute",
         left: `${SCREEN.left}%`, top: `${SCREEN.top}%`,
@@ -155,9 +156,9 @@ export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, auto
         </div>
       </div>
 
-      {/* Background artwork on top */}
+      {/* Frame artwork on top — transparent screen hole lets the video show through */}
       <img
-        src="/tv-background.webp"
+        src="/tv-border-alpha.webp"
         alt=""
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 5, pointerEvents: "none" }}
       />
