@@ -832,7 +832,10 @@ export default function HostRoom() {
   // PLAYING
   if (room.phase === "playing" && currentSong) {
     return (
-      <div className="page" style={{ justifyContent: "flex-start", paddingTop: 40 }}>
+      <div className="page" style={{
+        justifyContent: "flex-start", paddingTop: 40,
+        backgroundImage: "url(/voting-page-bg.webp)", backgroundSize: "cover", backgroundPosition: "center",
+      }}>
         <TopBar hidden />
         <div className="page-wide pc-split">
           {/* LEFT — video */}
