@@ -5,6 +5,7 @@ interface Props {
   onVote: (stars: number) => void;
   disabled?: boolean;
   voted?: boolean;
+  activeColor?: string;
 }
 
 // Custom grunge-style star icon (public/star-icon.webp) used as a CSS mask —
@@ -23,14 +24,14 @@ const maskStyle: React.CSSProperties = {
   maskPosition: "center",
 };
 
-function HalfStar({ fill, size = 36 }: { fill: "empty" | "half" | "full"; size?: number }) {
+function HalfStar({ fill, size = 36, color = "#e21b1b" }: { fill: "empty" | "half" | "full"; size?: number; color?: string }) {
   return (
     <div style={{ position: "relative", width: size, height: size }}>
       <div style={{ position: "absolute", inset: 0, background: "rgba(30,26,20,0.18)", ...maskStyle }} />
       {fill !== "empty" && (
         <div style={{
           position: "absolute", inset: 0,
-          background: "#e21b1b",
+          background: color,
           clipPath: fill === "half" ? "inset(0 50% 0 0)" : "inset(0 0 0 0)",
           ...maskStyle,
         }} />
@@ -39,7 +40,7 @@ function HalfStar({ fill, size = 36 }: { fill: "empty" | "half" | "full"; size?:
   );
 }
 
-export default function StarVote({ onVote, disabled, voted }: Props) {
+export default function StarVote({ onVote, disabled, voted, activeColor }: Props) {
   const [hovered, setHovered] = useState(0);
   const [selected, setSelected] = useState(0);
 
@@ -78,7 +79,7 @@ export default function StarVote({ onVote, disabled, voted }: Props) {
               transform: (hovered === s || hovered === s - 0.5) ? "scale(1.2)" : "scale(1)",
             }}
           >
-            <HalfStar fill={fillFor(s)} />
+            <HalfStar fill={fillFor(s)} color={activeColor} />
           </div>
         ))}
       </div>

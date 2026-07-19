@@ -95,7 +95,39 @@ export default function HostRoom() {
   const [invitedFriendIds, setInvitedFriendIds] = useState<Set<string>>(new Set());
   const [sessionEnded, setSessionEnded] = useState(false);
   const inviteMenuRef = useRef<HTMLDivElement>(null);
+  const tvWrapperRef = useRef<HTMLDivElement>(null);
+  const [tvTopCenter, setTvTopCenter] = useState<{ x: number; y: number } | null>(null);
   const s = useRef(getSocket());
+
+  // Keep the floating star-vote row locked exactly above the TV frame,
+  // regardless of viewport size — the TV's own width comes from a flex
+  // remainder (pc-main is flex:1 next to a fixed-width side panel), so a
+  // hardcoded percentage can't reliably center over it the way a real
+  // measurement can.
+  useEffect(() => {
+    function measure() {
+      const el = tvWrapperRef.current;
+      const pageEl = el?.closest(".page") as HTMLElement | null;
+      if (!el || !pageEl) return;
+      const elRect = el.getBoundingClientRect();
+      const pageRect = pageEl.getBoundingClientRect();
+      // This app applies a legacy CSS `zoom` to html AND body (left as-is —
+      // a known, pre-existing quirk). getBoundingClientRect() returns
+      // already-zoom-scaled screen pixels, but a `left`/`top` value we set
+      // in CSS gets zoomed again by the browser when it renders — so raw
+      // rect math here would end up double-scaled. Divide out the combined
+      // zoom factor before using these numbers as CSS px values.
+      const zoom = (parseFloat(getComputedStyle(document.documentElement).zoom) || 1)
+        * (parseFloat(getComputedStyle(document.body).zoom) || 1);
+      setTvTopCenter({
+        x: (elRect.left - pageRect.left + elRect.width / 2) / zoom,
+        y: (elRect.top - pageRect.top) / zoom,
+      });
+    }
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [room?.phase]);
 
   useEffect(() => {
     const sock = s.current;
@@ -844,33 +876,35 @@ export default function HostRoom() {
         }} />
         <TopBar hidden />
 
-        {/* Vote card — floats over the open background area above the TV */}
-        <div className="glass" style={{
-          position: "absolute", top: "4%", left: "4%", width: "clamp(260px, 32%, 380px)",
-          padding: "20px 24px", textAlign: "center", zIndex: 2,
-        }}>
-          {isMyOwnSong ? (
-            <div>
-              <p style={{ fontSize: 28, marginBottom: 12 }}>🎤</p>
-              <p style={{ color: "var(--text-secondary)", fontSize: 13, fontStyle: "italic" }}>
-                This is your song.<br />Others are voting now…
-              </p>
-            </div>
-          ) : (
-            <div>
-              <p style={{ fontSize: 10, letterSpacing: "0.2em", color: "var(--text-secondary)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 20 }}>
-                Rate this song
-              </p>
+        {/* Vote row — no card/box, floats directly on the background, locked
+            horizontally centered and sitting just above the TV frame (see
+            the tvTopCenter measurement effect above). */}
+        {tvTopCenter && (
+          <div style={{
+            position: "absolute",
+            left: tvTopCenter.x, top: tvTopCenter.y,
+            transform: "translate(-50%, calc(-100% - 14px))",
+            textAlign: "center", zIndex: 2,
+          }}>
+            {isMyOwnSong ? (
+              <div>
+                <p style={{ fontSize: 28, marginBottom: 8 }}>🎤</p>
+                <p style={{ color: "var(--text-secondary)", fontSize: 13, fontStyle: "italic" }}>
+                  This is your song. Others are voting now…
+                </p>
+              </div>
+            ) : (
               <StarVote
                 onVote={(stars) => castVote(room.currentSongIndex, stars)}
                 voted={alreadyVoted}
+                activeColor="#1a1611"
               />
-            </div>
-          )}
-          <p style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 20, fontStyle: "italic" }}>
-            {room.submissions.reduce((a, s) => a + s.votes.length, 0)} votes cast
-          </p>
-        </div>
+            )}
+            <p style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 10, fontStyle: "italic" }}>
+              {room.submissions.reduce((a, s) => a + s.votes.length, 0)} votes cast
+            </p>
+          </div>
+        )}
 
         <div className="page-wide pc-split">
           {/* LEFT — video */}
@@ -893,7 +927,9 @@ export default function HostRoom() {
               )}
             </div>
 
-            <YouTubePlayer youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} />
+            <div ref={tvWrapperRef}>
+              <YouTubePlayer youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} />
+            </div>
           </div>
 
           {/* RIGHT — category / players / next-song */}
