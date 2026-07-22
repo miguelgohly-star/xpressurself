@@ -126,9 +126,26 @@ export default function HostRoom() {
       });
     }
     measure();
+    // Re-check shortly after mount too — this app loads several custom
+    // webfonts (Cormorant Garamond, Pinyon Script, Yellowtail) that can
+    // reflow the song-header text (and so shift the TV down) after the
+    // very first measurement already ran, leaving the star row stranded
+    // above where the TV used to be.
+    if (typeof document !== "undefined" && "fonts" in document) {
+      (document as any).fonts.ready.then(measure).catch(() => {});
+    }
+    const t1 = setTimeout(measure, 300);
+    const t2 = setTimeout(measure, 1000);
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [room?.phase]);
+    return () => {
+      window.removeEventListener("resize", measure);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  // Different songs have different title lengths — a longer title that wraps
+  // to a second line grows the header above the TV and pushes it down, so
+  // this needs to re-measure on every song change, not just phase changes.
+  }, [room?.phase, room?.currentSongIndex]);
 
   useEffect(() => {
     const sock = s.current;
@@ -899,7 +916,7 @@ export default function HostRoom() {
                 onVote={(stars) => castVote(room.currentSongIndex, stars)}
                 voted={alreadyVoted}
                 activeColor="#1a1611"
-                size={Math.min(28, tvTopCenter.width * 0.12)}
+                size={Math.min(42, tvTopCenter.width * 0.16)}
               />
             )}
             <p style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 10, fontStyle: "italic" }}>

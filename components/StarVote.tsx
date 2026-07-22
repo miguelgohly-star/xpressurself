@@ -28,7 +28,11 @@ const maskStyle: React.CSSProperties = {
 function HalfStar({ fill, size = 36, color = "#e21b1b" }: { fill: "empty" | "half" | "full"; size?: number; color?: string }) {
   return (
     <div style={{ position: "relative", width: size, height: size }}>
-      <div style={{ position: "absolute", inset: 0, background: "rgba(30,26,20,0.18)", ...maskStyle }} />
+      {/* Black outline "halo" — same mask shape, scaled up slightly and
+          rendered behind the white fill, so it peeks out around the edges
+          as a stroke. mask-image has no native stroke/outline of its own. */}
+      <div style={{ position: "absolute", inset: 0, background: "#000", transform: "scale(1.16)", ...maskStyle }} />
+      <div style={{ position: "absolute", inset: 0, background: "#fff", ...maskStyle }} />
       {fill !== "empty" && (
         <div style={{
           position: "absolute", inset: 0,
