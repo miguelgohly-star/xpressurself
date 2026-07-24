@@ -320,7 +320,7 @@ export function advanceRound(code: string): Room | null {
   const room = rooms.get(code);
   if (!room) return null;
   if (room.gameOver) return room;
-  room.phase = "lobby";
+  room.phase = "spinning";
   room.currentCategory = null;
   room.submissions = [];
   room.currentSongIndex = 0;

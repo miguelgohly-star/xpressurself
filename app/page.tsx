@@ -124,23 +124,40 @@ export default function LandingPage() {
         .topbar{
           position:fixed;top:0;left:0;right:0;z-index:85;
           display:flex;align-items:center;justify-content:center;gap:64px;
-          padding:16px 28px;background:rgb(255,255,255);
-          border-bottom:1px solid rgba(255,255,255,0.9);
-          box-shadow:0 0 28px rgba(255,255,255,0.85), 0 1px 0 rgba(255,255,255,1);
+          padding:16px 28px;
+          background:rgba(255,255,255,0.22);
+          backdrop-filter:blur(20px) saturate(180%) brightness(1.08);
+          -webkit-backdrop-filter:blur(20px) saturate(180%) brightness(1.08);
+          border-bottom:1px solid rgba(255,255,255,0.5);
+          box-shadow:
+            0 1px 0 rgba(255,255,255,0.9) inset,
+            0 10px 30px rgba(30,26,20,0.10);
+          isolation:isolate;
+        }
+        .topbar::before{
+          content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+          backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+          filter:url(#glass-distortion);
+        }
+        .topbar::after{
+          content:'';position:absolute;inset:0;z-index:1;pointer-events:none;
+          background:linear-gradient(180deg, rgba(255,255,255,0.35) 0%, transparent 60%);
+          box-shadow:inset 1px 1px 0 rgba(255,255,255,0.4), inset -1px -1px 0 rgba(255,255,255,0.15);
         }
         .topbar__logo{
+          position:relative;z-index:2;
           font-family:'Yellowtail', cursive;font-size:1.7rem;color:#e21b1b;
-          text-shadow:0 0 10px rgba(226,27,27,0.4), 0 0 2px rgba(255,255,255,0.85);
+          text-shadow:0 0 10px rgba(226,27,27,0.4), 0 1px 3px rgba(255,255,255,0.7);
           letter-spacing:0.01em;user-select:none;
         }
-        .topbar__nav{display:flex;align-items:center;justify-content:center;gap:10px;}
+        .topbar__nav{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;gap:10px;}
         .topbar__navItem{
           background:none;border:none;cursor:pointer;
           display:flex;align-items:center;justify-content:center;gap:9px;
           padding:6px 14px;border-radius:999px;
           transition:background 0.18s ease;
         }
-        .topbar__navItem:hover{background:rgba(30,26,20,0.06);}
+        .topbar__navItem:hover{background:rgba(255,255,255,0.28);}
         .topbar__navItem img{
           width:30px;height:30px;border-radius:50%;object-fit:cover;
           box-shadow:0 0 0 1px rgba(30,26,20,0.1);
@@ -149,6 +166,7 @@ export default function LandingPage() {
         .topbar__navItem span{
           font-family:var(--font-ui);font-size:12px;letter-spacing:0.03em;
           color:var(--text-dark);white-space:nowrap;
+          text-shadow:0 1px 2px rgba(255,255,255,0.55);
         }
       `}</style>
     </>

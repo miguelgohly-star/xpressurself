@@ -241,7 +241,7 @@ export default function WheelsPage() {
 
   return (
     <>
-      <img src="/wheels-bg.webp" alt="" style={{
+      <img src="/my-wheels-background.webp" alt="" style={{
         position: "fixed", inset: 0, width: "100%", height: "100%",
         zIndex: 0, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
       }}/>

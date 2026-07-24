@@ -132,6 +132,22 @@ app.prepare().then(() => {
     beginCountdownThenPlay(code);
   }
 
+  function startSpin(code: string) {
+    const room = getRoom(code);
+    if (!room) return;
+    setPhase(code, "spinning");
+    io.to(code).emit("room-updated", getRoom(code));
+
+    setTimeout(() => {
+      const cats = room.categories;
+      const picked = cats[Math.floor(Math.random() * cats.length)];
+      setCategory(code, picked);
+      setPhase(code, "submitting");
+      io.to(code).emit("room-updated", getRoom(code));
+      scheduleSubmissionTimer(code);
+    }, 4000);
+  }
+
   function scheduleSubmissionTimer(code: string) {
     const room = getRoom(code);
     if (!room || !room.timeLimit) return;
@@ -174,18 +190,7 @@ app.prepare().then(() => {
     socket.on("spin-wheel", ({ code }: { code: string }) => {
       const room = getRoom(code);
       if (!room || socket.id !== room.hostId) return;
-
-      setPhase(code, "spinning");
-      io.to(code).emit("room-updated", getRoom(code));
-
-      setTimeout(() => {
-        const cats = room.categories;
-        const picked = cats[Math.floor(Math.random() * cats.length)];
-        setCategory(code, picked);
-        setPhase(code, "submitting");
-        io.to(code).emit("room-updated", getRoom(code));
-        scheduleSubmissionTimer(code);
-      }, 4000);
+      startSpin(code);
     });
 
     socket.on("submit-song", ({
@@ -306,7 +311,7 @@ app.prepare().then(() => {
       submissionTimers.delete(code);
       const updated = advanceRound(code);
       if (!updated) return;
-      io.to(code).emit("room-updated", updated);
+      startSpin(code);
     });
 
     socket.on("restart-game", ({ code }: { code: string }) => {

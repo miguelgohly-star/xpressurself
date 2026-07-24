@@ -119,7 +119,7 @@ const GlassButton: React.FC<{ children: React.ReactNode; href?: string }> = ({
 );
 
 // SVG Filter Component
-const GlassFilter: React.FC = () => (
+export const GlassFilter: React.FC = () => (
   <svg style={{ display: "none" }}>
     <filter
       id="glass-distortion"

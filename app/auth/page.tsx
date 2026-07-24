@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import TopBar from "@/components/TopBar";
@@ -84,6 +84,19 @@ function AuthPageInner() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState("");
 
+  // Lock the page — no vertical scroll while on the auth tab
+  useEffect(() => {
+    const { documentElement: html, body } = document;
+    const prevHtml = html.style.overflow;
+    const prevBody = body.style.overflow;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    return () => {
+      html.style.overflow = prevHtml;
+      body.style.overflow = prevBody;
+    };
+  }, []);
+
   const clearErrors = () => { setFieldError({}); setGlobalError(""); };
 
   const handleSignIn = async () => {
@@ -128,7 +141,13 @@ function AuthPageInner() {
   };
 
   return (
-    <div className="page" style={{ paddingTop: 152 }}>
+    <>
+      <img src="/profile-bg.webp" alt="" style={{
+        position: "fixed", inset: 0, width: "100%", height: "100%",
+        zIndex: 0, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
+      }}/>
+
+      <div className="page" style={{ paddingTop: 152, justifyContent: "flex-start" }}>
       <TopBar />
 
       <div className="text-center animate-fade-in" style={{ marginBottom: 48 }}>
@@ -250,7 +269,8 @@ function AuthPageInner() {
       <p style={{ color: "var(--text-faint)", fontSize: 10, marginTop: 28, letterSpacing: "0.15em", fontFamily: "'Cormorant Garamond', serif" }}>
         Google & Apple sign-in available at full launch
       </p>
-    </div>
+      </div>
+    </>
   );
 }
 

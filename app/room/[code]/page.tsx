@@ -263,6 +263,10 @@ export default function HostRoom() {
   if (sessionEnded) {
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
+        <img src="/background-song-wars.webp" alt="" style={{
+          position: "fixed", inset: 0, width: "100%", height: "100%",
+          zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
+        }}/>
         <TopBar />
         <div className="glass p-8 text-center animate-fade-in" style={{ maxWidth: 420 }}>
           <p style={{ fontSize: 15, marginBottom: 8 }}>This game session has ended.</p>
@@ -275,6 +279,10 @@ export default function HostRoom() {
   if (!room) {
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
+        <img src="/background-song-wars.webp" alt="" style={{
+          position: "fixed", inset: 0, width: "100%", height: "100%",
+          zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
+        }}/>
         <TopBar />
         <div className="glass p-8 text-center animate-fade-in">
           <p style={{ color: "var(--text-secondary)" }}>Connecting…</p>
@@ -361,6 +369,10 @@ export default function HostRoom() {
 
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
+        <img src="/background-song-wars.webp" alt="" style={{
+          position: "fixed", inset: 0, width: "100%", height: "100%",
+          zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
+        }}/>
         <TopBar />
         <div className="page-wide" style={{ width: "100%" }}>
           <div className="glass" style={{
@@ -750,6 +762,10 @@ export default function HostRoom() {
   if (room.phase === "starting") {
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
+        <img src="/background-song-wars.webp" alt="" style={{
+          position: "fixed", inset: 0, width: "100%", height: "100%",
+          zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
+        }}/>
         <TopBar />
         <div className="glass p-12 text-center animate-fade-in" style={{ maxWidth: 400 }}>
           <p style={{ fontSize: 13, letterSpacing: "0.15em", color: "var(--text-secondary)", marginBottom: 16 }}>GET READY</p>
@@ -765,6 +781,10 @@ export default function HostRoom() {
     const allSubmitted = room.submissions.length >= room.players.length;
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
+        <img src="/background-song-wars.webp" alt="" style={{
+          position: "fixed", inset: 0, width: "100%", height: "100%",
+          zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
+        }}/>
         <TopBar />
         <div style={{ width: "100%", maxWidth: 600, display: "flex", flexDirection: "column", alignItems: "center", gap: 32 }}>
           <div className="text-center">
@@ -1003,6 +1023,10 @@ export default function HostRoom() {
       .sort((a, b) => b.avg - a.avg);
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
+        <img src="/background-song-wars.webp" alt="" style={{
+          position: "fixed", inset: 0, width: "100%", height: "100%",
+          zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
+        }}/>
         <TopBar />
         <div style={{ width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 24 }}>
           <div className="text-center">
@@ -1101,6 +1125,10 @@ export default function HostRoom() {
 
   return (
     <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
+      <img src="/background-song-wars.webp" alt="" style={{
+        position: "fixed", inset: 0, width: "100%", height: "100%",
+        zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
+      }}/>
       <TopBar />
       <div className="glass p-8 text-center">
         <p style={{ color: "var(--text-secondary)" }}>Phase: {room.phase}</p>

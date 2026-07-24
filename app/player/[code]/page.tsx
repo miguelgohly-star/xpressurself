@@ -49,7 +49,7 @@ export default function PlayerView() {
     const sock = s.current;
     sock.on("room-updated", (r: Room) => {
       setRoom(r);
-      if (r.phase === "lobby") {
+      if (r.phase === "lobby" || r.phase === "spinning") {
         setSubmitted(false);
         setYoutubeUrl("");
         setSongTitle("");

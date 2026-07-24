@@ -199,7 +199,7 @@ export default function AccountPage() {
 
   return (
     <>
-      <img src="/account-bg.webp" alt="" style={{
+      <img src="/profile-bg.webp" alt="" style={{
         position: "fixed", inset: 0, width: "100%", height: "100%",
         zIndex: 0, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
       }}/>
