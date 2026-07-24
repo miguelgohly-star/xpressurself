@@ -25,8 +25,8 @@
 :root {
   /* Old paper + sage sky + lavender mist */
   --bg-color:      linear-gradient(150deg,#f7f3ea 0%,#ede6d6 18%,#e4dece 32%,#dddbd5 48%,#d8ddd0 62%,#d5d8e0 76%,#ddd8e8 90%,#e8e4f0 100%);
-  --glass:         rgb(252,248,242);
-  --glass-2:       rgba(246,241,233,0.72);
+  --glass:         rgb(255,255,255);
+  --glass-2:       rgba(255,255,255,0.72);
   --glass-border:  rgba(255,255,255,0.92);
   --glass-border2: rgba(170,160,142,0.25);
   --shadow-soft:   rgba(50,38,22,0.10);
