@@ -7,6 +7,7 @@ import SongSearch from "@/components/SongSearch";
 import Countdown from "@/components/Countdown";
 import YouTubePlayer, { isMobileDevice } from "@/components/YouTubePlayer";
 import type { Room } from "@/lib/gameState";
+import { avgVotes } from "@/lib/gameState";
 import { getSocket } from "@/lib/socket";
 import TopBar from "@/components/TopBar";
 import PlayerAvatar from "@/components/PlayerAvatar";
@@ -388,7 +389,7 @@ export default function PlayerView() {
       .map((s) => ({
         playerId: s.playerId,
         playerName: s.playerName,
-        avg: s.votes.length > 0 ? s.votes.reduce((a: number, b: number) => a + b, 0) / s.votes.length : 0,
+        avg: avgVotes(s.votes),
         title: s.title,
       }))
       .sort((a, b) => b.avg - a.avg);

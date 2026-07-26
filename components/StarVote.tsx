@@ -37,7 +37,13 @@ function HalfStar({ fill, size = 36, color = "#e21b1b" }: { fill: "empty" | "hal
         <div style={{
           position: "absolute", inset: 0,
           background: color,
-          clipPath: fill === "half" ? "inset(0 50% 0 0)" : "inset(0 0 0 0)",
+          // The star's own top-point tip (public/star-icon.webp) sits at
+          // ~50.7% across its 512px canvas, not exactly 50% — measured by
+          // scanning for the tip's x-position across its first several
+          // rows. A clip at a flat 50% cuts slightly into the tip's right
+          // side, reading as not-quite-half. 49.3% (mirroring that offset)
+          // lines the split up with the star's actual visual center.
+          clipPath: fill === "half" ? "inset(0 49.3% 0 0)" : "inset(0 0 0 0)",
           ...maskStyle,
         }} />
       )}
@@ -70,16 +76,16 @@ export default function StarVote({ onVote, disabled, voted, activeColor, size = 
         {[1, 2, 3, 4, 5].map((s) => (
           <div
             key={s}
-            onMouseMove={(e) => { if (!voted && !disabled) setHovered(getValue(s, e)); }}
+            onMouseMove={(e) => { if (!disabled) setHovered(getValue(s, e)); }}
             onMouseLeave={() => setHovered(0)}
             onClick={(e) => {
-              if (disabled || voted) return;
+              if (disabled) return;
               const v = getValue(s, e);
               setSelected(v);
               onVote(v);
             }}
             style={{
-              cursor: voted || disabled ? "default" : "pointer",
+              cursor: disabled ? "default" : "pointer",
               opacity: disabled ? 0.4 : 1,
               transition: "transform 0.1s",
               transform: (hovered === s || hovered === s - 0.5) ? "scale(1.2)" : "scale(1)",
@@ -90,17 +96,16 @@ export default function StarVote({ onVote, disabled, voted, activeColor, size = 
         ))}
       </div>
 
-      {!voted && !disabled && active > 0 && (
+      {/* Votes stay changeable for as long as the song is playing — this
+          just swaps the hint text between "you can still tweak it" (voted)
+          and "here's your live preview" (mid-hover, not yet voted), it
+          never locks the stars themselves. */}
+      {!disabled && active > 0 && (
         <p style={{ color: "var(--cream)", fontSize: 13, fontWeight: 600 }}>
-          {active} star{active !== 1 ? "s" : ""}
+          {active} star{active !== 1 ? "s" : ""}{voted ? " · tap to change" : ""}
         </p>
       )}
-      {voted && (
-        <p style={{ color: "var(--cream)", fontSize: 13, letterSpacing: "0.08em" }}>
-          Vote cast ✓
-        </p>
-      )}
-      {!voted && !disabled && active === 0 && (
+      {!disabled && active === 0 && (
         <p style={{ color: "var(--text-secondary)", fontSize: 12 }}>
           Rate this song while it plays
         </p>

@@ -27,7 +27,7 @@ export interface SongSubmission {
   youtubeUrl: string;
   title: string;
   startTime: number; // seconds
-  votes: number[];
+  votes: Record<string, number>; // voterId -> stars — keyed so a re-vote replaces the voter's previous rating instead of adding a second one
 }
 
 export interface Room {
@@ -227,7 +227,7 @@ export function submitSong(
     youtubeUrl,
     title,
     startTime: Math.max(0, startTime),
-    votes: [],
+    votes: {},
   };
 
   if (existing >= 0) {
@@ -239,6 +239,9 @@ export function submitSong(
   return room;
 }
 
+// Keyed by voterId so casting again for the same song just overwrites the
+// previous rating — lets a voter freely change their mind while the song is
+// still playing instead of stacking up multiple votes toward the average.
 export function castVote(code: string, voterId: string, songIndex: number, stars: number): Room | null {
   const room = rooms.get(code);
   if (!room) return null;
@@ -247,7 +250,7 @@ export function castVote(code: string, voterId: string, songIndex: number, stars
   if (!song) return null;
   if (song.playerId === voterId) return room;
 
-  song.votes.push(Math.min(5, Math.max(1, stars)));
+  song.votes[voterId] = Math.min(5, Math.max(1, stars));
   return room;
 }
 
@@ -258,12 +261,17 @@ export function nextSong(code: string): Room | null {
   return room;
 }
 
+export function avgVotes(votes: Record<string, number>): number {
+  const values = Object.values(votes);
+  return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+}
+
 export function getResults(room: Room): { playerId: string; playerName: string; avg: number }[] {
   return room.submissions
     .map((s) => ({
       playerId: s.playerId,
       playerName: s.playerName,
-      avg: s.votes.length > 0 ? s.votes.reduce((a, b) => a + b, 0) / s.votes.length : 0,
+      avg: avgVotes(s.votes),
     }))
     .sort((a, b) => b.avg - a.avg);
 }
@@ -294,9 +302,7 @@ export function finalizeRound(code: string): Room | null {
   for (const submission of room.submissions) {
     const player = room.players.find((p) => p.id === submission.playerId);
     if (!player) continue;
-    const avg = submission.votes.length > 0
-      ? submission.votes.reduce((a, b) => a + b, 0) / submission.votes.length
-      : 0;
+    const avg = avgVotes(submission.votes);
     player.totalScore += avg;
     player.roundsPlayed += 1;
   }

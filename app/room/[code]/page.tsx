@@ -9,6 +9,7 @@ import SongSearch from "@/components/SongSearch";
 import Countdown from "@/components/Countdown";
 import QRCode from "react-qr-code";
 import type { Room, TimeLimit, SongDuration, ScreenMode, RoundLimit } from "@/lib/gameState";
+import { avgVotes } from "@/lib/gameState";
 import { getSocket } from "@/lib/socket";
 import TopBar from "@/components/TopBar";
 import PlayerAvatar from "@/components/PlayerAvatar";
@@ -70,7 +71,7 @@ function getResults(room: Room) {
     .map((s) => ({
       playerId: s.playerId,
       playerName: s.playerName,
-      avg: s.votes.length > 0 ? s.votes.reduce((a: number, b: number) => a + b, 0) / s.votes.length : 0,
+      avg: avgVotes(s.votes),
     }))
     .sort((a, b) => b.avg - a.avg);
 }
@@ -943,7 +944,7 @@ export default function HostRoom() {
               />
             )}
             <p style={{ fontSize: 11, color: "var(--text-faint)", marginTop: 10, fontStyle: "italic" }}>
-              {room.submissions.reduce((a, s) => a + s.votes.length, 0)} votes cast
+              {room.submissions.reduce((a, s) => a + Object.keys(s.votes).length, 0)} votes cast
             </p>
           </div>
         )}
