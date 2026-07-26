@@ -326,6 +326,12 @@ export default function PlayerView() {
     const showVideo = room.screenMode === "everyone";
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
+        {/* Same backdrop as /play and the host's room view, for visual
+            consistency across every screen a player might be looking at. */}
+        <img src="/background-song-wars.webp" alt="" style={{
+          position: "fixed", inset: 0, width: "100%", height: "100%",
+          zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
+        }}/>
         <TopBar hidden />
         <div style={{ width: "100%", maxWidth: showVideo ? 720 : 400, display: "flex", flexDirection: "column", gap: 20 }}>
           <div className="text-center">
@@ -333,7 +339,6 @@ export default function PlayerView() {
               NOW PLAYING {room.currentSongIndex + 1}/{room.submissions.length}
             </p>
             <h3 style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>{currentSong.title}</h3>
-            <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 2 }}>by {currentSong.playerName}</p>
           </div>
 
           {showVideo && (
@@ -343,7 +348,7 @@ export default function PlayerView() {
                   🔊 Tap the video to play it with sound — phones block autoplay with audio
                 </p>
               )}
-              <YouTubePlayer youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} />
+              <YouTubePlayer frame="ipad" youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} />
             </>
           )}
 

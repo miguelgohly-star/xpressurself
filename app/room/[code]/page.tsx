@@ -397,7 +397,7 @@ export default function HostRoom() {
                 gap: 8, paddingRight: 32, borderRight: "1px solid var(--glass-border2)",
               }}>
                 <p style={colLabel}>Room Code</p>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <div
                     className="room-code"
                     style={{
@@ -411,6 +411,8 @@ export default function HostRoom() {
                     title={codeVisible ? "Hide room code" : "Show room code"}
                     aria-label={codeVisible ? "Hide room code" : "Show room code"}
                     style={{
+                      position: "absolute", left: "100%", top: "50%", transform: "translateY(-50%)",
+                      marginLeft: 8,
                       background: "none", border: "none", cursor: "pointer", padding: 4,
                       lineHeight: 1, opacity: 0.6, transition: "opacity 0.15s",
                       color: "var(--text-dark)", display: "flex",
@@ -907,10 +909,11 @@ export default function HostRoom() {
             this content can grow taller than 100vh (two-column layout on a
             short viewport), and background-size:cover would otherwise scale
             against that overflowed height instead of the actual screen,
-            zooming in and cropping the art unrecognizably. */}
+            zooming in and cropping the art unrecognizably. Same backdrop as
+            the /play page, for visual consistency between the two. */}
         <div style={{
           position: "fixed", inset: 0, zIndex: -1,
-          backgroundImage: "url(/voting-page-bg.webp)", backgroundSize: "cover", backgroundPosition: "center",
+          backgroundImage: "url(/background-song-wars.webp)", backgroundSize: "cover", backgroundPosition: "center",
         }} />
         <TopBar hidden />
 
@@ -957,9 +960,6 @@ export default function HostRoom() {
                 <h2 style={{ fontSize: 24, fontWeight: 300, color: "var(--cream)", marginTop: 4, fontFamily: "'Cormorant Garamond', serif", letterSpacing: "0.04em" }}>
                   {currentSong.title}
                 </h2>
-                <p style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2, fontStyle: "italic" }}>
-                  submitted by {currentSong.playerName}
-                </p>
               </div>
               {room.songDuration && (
                 <SongTimer key={room.currentSongIndex} duration={room.songDuration} onExpire={isHost ? nextSong : undefined} />
@@ -967,7 +967,7 @@ export default function HostRoom() {
             </div>
 
             <div ref={tvWrapperRef}>
-              <YouTubePlayer youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} />
+              <YouTubePlayer frame="ipad" youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} />
             </div>
           </div>
 

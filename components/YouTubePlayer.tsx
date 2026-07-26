@@ -7,7 +7,50 @@ interface Props {
   onReady?: () => void;
   autoplay?: boolean; // defaults to device-based detection — see isMobileDevice()
   bare?: boolean; // skip the built-in TV background art — just the video + CRT overlays, sized to fill the parent
+  frame?: "tv" | "ipad"; // which built-in frame art to use when bare is false — see FRAMES below
 }
+
+// Two frame variants, each measured from its own source artwork by
+// pixel-scanning for the screen area's bounding box:
+//
+// "tv" (public/tv-border-alpha-v2.webp, 1483x1061) — the screen cutout is a
+// real transparent hole in the frame, so the frame can sit ON TOP of the
+// video with its edges genuinely overlapping/covering the video's edges.
+//
+// "ipad" (public/tv-border-ipad-v2.webp, 1347x1020) — derived from the original
+// upload (public/tv border.webp, 1448x1086), which had a fully opaque white
+// canvas and loose ink-splatter/bird artwork surrounding the device, plus a
+// baked-in checkerboard (not real transparency) standing in for the screen.
+// Processed with sharp: cropped to the device's actual bounding box (found
+// by scanning for sustained runs of dark pixels, since the splatter marks
+// are scattered widely enough that a naive first-non-white-pixel scan picks
+// up stray dots instead of the real edge) at content-box coords (50,30) in
+// the original image, then given a real alpha channel via a whiteness ramp
+// (transparent above luminance 246, opaque below 216) — this cleans up the
+// rounded-corner slivers left by the rectangular crop along with the rest
+// of the margin. The measured screen rectangle itself is additionally
+// forced to alpha 0 unconditionally (the checkerboard's light-gray squares
+// didn't cross the whiteness ramp on their own, leaving a faint residual
+// checker pattern under the video otherwise). Still rendered video-ON-TOP
+// rather than through the hole, just to keep both frame variants' layering
+// consistent — not a functional requirement at this point.
+const FRAMES = {
+  tv: {
+    src: "/tv-border-alpha-v2.webp",
+    aspectRatio: "1483/1061",
+    screen: { left: 20.77, top: 16.97, width: 59.95, height: 56.93 },
+    videoOnTop: false,
+  },
+  ipad: {
+    src: "/tv-border-ipad-v2.webp",
+    aspectRatio: "1347/1020",
+    // width/height nudged slightly past the measured screen bounds (88.05%
+    // / 59.71%) per a real-render check — the video sat about a pixel short
+    // of the frame's screen edge on the bottom and right.
+    screen: { left: 6.01, top: 22.25, width: 88.35, height: 60.01 },
+    videoOnTop: true,
+  },
+} as const;
 
 function extractVideoId(url: string): string | null {
   const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
@@ -30,7 +73,7 @@ declare global {
   }
 }
 
-export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, autoplay, bare = false }: Props) {
+export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, autoplay, bare = false, frame = "tv" }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
   const videoId = extractVideoId(youtubeUrl);
@@ -131,37 +174,34 @@ export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, auto
     );
   }
 
-  // Measured from the source artwork (public/tv-border-alpha-v2.webp, 1483x1061):
-  // the screen cutout is a real transparent hole in the frame (found by
-  // flood-filling the enclosed near-white region and taking its bounding
-  // box), so the frame can sit ON TOP of the video and its edges genuinely
-  // overlap/cover the video's edges, instead of the video having to be
-  // layered over a flat painted-on rectangle.
-  const SCREEN = { left: 20.77, top: 16.97, width: 59.95, height: 56.93 };
+  const { src, aspectRatio, screen: SCREEN, videoOnTop } = FRAMES[frame];
 
   return (
-    <div style={{ width: "100%", maxWidth: 720, margin: "0 auto", position: "relative", aspectRatio: "1483/1061" }}>
-      {/* Screen cutout — sits behind the frame, filled by the video */}
+    <div style={{ width: "100%", maxWidth: 720, margin: "0 auto", position: "relative", aspectRatio }}>
+      {/* Frame artwork — on top (z-index 5) when it has a real transparent
+          hole the video shows through ("tv"); behind (z-index 1, same layer
+          as the screen box below) when it doesn't ("ipad"), since there's
+          nothing to see through otherwise. */}
+      <img
+        src={src}
+        alt=""
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: videoOnTop ? 1 : 5, pointerEvents: "none" }}
+      />
+
+      {/* Screen area — filled by the video */}
       <div style={{
         position: "absolute",
         left: `${SCREEN.left}%`, top: `${SCREEN.top}%`,
         width: `${SCREEN.width}%`, height: `${SCREEN.height}%`,
         background: "#050402",
         overflow: "hidden",
-        zIndex: 1,
+        zIndex: videoOnTop ? 5 : 1,
       }}>
         {/* True 16:9 video, letterboxed/centered within the (slightly taller) cutout */}
         <div style={{ position: "absolute", top: "50%", left: 0, width: "100%", aspectRatio: "16/9", transform: "translateY(-50%)" }}>
           {videoWithOverlays}
         </div>
       </div>
-
-      {/* Frame artwork on top — transparent screen hole lets the video show through */}
-      <img
-        src="/tv-border-alpha-v2.webp"
-        alt=""
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 5, pointerEvents: "none" }}
-      />
     </div>
   );
 }
