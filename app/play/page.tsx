@@ -158,7 +158,14 @@ function HomeInner() {
                 placeholder="enter your name"
                 onKeyDown={(e) => e.key === "Enter" && handleHost()}
                 maxLength={20}
+                disabled={!!session?.user}
+                style={session?.user ? { opacity: 0.6 } : undefined}
               />
+              {session?.user && (
+                <p style={{ fontSize: 10, color: "var(--text-faint)", fontStyle: "italic", marginTop: 6 }}>
+                  Signed in as {hostName} — sign out to play under a different name
+                </p>
+              )}
             </div>
             <button className="btn-glow" onClick={handleHost} disabled={loading} style={{ width: "100%", marginTop: 8 }}>
               {loading ? "Creating…" : "Create Room"}
@@ -173,7 +180,14 @@ function HomeInner() {
                 onChange={(e) => { setJoinName(e.target.value); setError(""); }}
                 placeholder="enter your name"
                 maxLength={20}
+                disabled={!!session?.user}
+                style={session?.user ? { opacity: 0.6 } : undefined}
               />
+              {session?.user && (
+                <p style={{ fontSize: 10, color: "var(--text-faint)", fontStyle: "italic", marginTop: 6 }}>
+                  Signed in as {joinName} — sign out to play under a different name
+                </p>
+              )}
             </div>
             <div>
               <label style={labelStyle}>Room Code</label>

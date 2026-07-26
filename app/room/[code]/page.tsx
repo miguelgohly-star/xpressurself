@@ -218,7 +218,9 @@ export default function HostRoom() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [inviteMenuOpen]);
 
-  // Lock this page in place — no scrolling.
+  // Lock this page in place — no scrolling, same as every other page in the
+  // app. The spinning/submitting card is sized to fit without it instead
+  // (see the width bump below).
   useEffect(() => {
     const { documentElement: html, body } = document;
     const prevHtml = html.style.overflow;
@@ -783,13 +785,18 @@ export default function HostRoom() {
   if (room.phase === "spinning" || room.phase === "submitting") {
     const allSubmitted = room.submissions.length >= room.players.length;
     return (
-      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
+      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(45px, 6vh, 120px)" }}>
         <img src="/background-song-wars.webp" alt="" style={{
           position: "fixed", inset: 0, width: "100%", height: "100%",
           zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
         }}/>
         <TopBar />
-        <div style={{ width: "100%", maxWidth: 600, display: "flex", flexDirection: "column", alignItems: "center", gap: 32 }}>
+        {/* maxWidth here used to be 600 — fine while it only centered the
+            header text, but once the wheel+form row renders (flex, wheel
+            380px + gap 48px + form up to 960px), 600 was already being
+            overflowed rather than actually containing it. Raised to fit
+            that row with room to spare instead of quietly ignoring its own cap. */}
+        <div style={{ width: "100%", maxWidth: 1450, display: "flex", flexDirection: "column", alignItems: "center", gap: 32 }}>
           <div className="text-center">
             <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-secondary)", letterSpacing: "0.1em" }}>
               {room.phase === "spinning" ? "SPINNING…" : room.currentCategory?.toUpperCase()}
@@ -806,93 +813,110 @@ export default function HostRoom() {
             </div>
 
           {room.phase === "submitting" && (
-            <div className="submit-form" style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }}>
-              {/* Countdown */}
-              {room.submissionDeadline && (
-                <div style={{ display: "flex", justifyContent: "center" }}>
-                  <Countdown deadline={room.submissionDeadline} />
-                </div>
-              )}
+            <div className="submit-form" style={{ width: "100%" }}>
+              {/* One card for the whole submit flow — song form/confirmation
+                  on top, player status + start button below a divider —
+                  instead of two separately-bordered glass boxes stacked
+                  with a gap between them. This card's full content
+                  (countdown + form + player list + button) genuinely runs
+                  taller than shorter viewports under this app's site-wide
+                  zoom, so the page's scroll lock is turned off for this
+                  phase (see the effect above) rather than caging the
+                  overflow in a cramped scrollbar inside the card itself. */}
+              <div className="glass p-4" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* Countdown */}
+                {room.submissionDeadline && (
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <Countdown deadline={room.submissionDeadline} />
+                  </div>
+                )}
 
-              {/* Host song submission */}
-              {submitted ? (
-                <div className="glass p-4 text-center">
-                  <p style={{ color: "var(--cream)", fontWeight: 300, letterSpacing: "0.1em" }}>✓ Your song is in</p>
-                  <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 4 }}>{songTitle}</p>
-                </div>
-              ) : (
-                <div className="glass p-5" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cream)" }}>Submit your song</p>
-                  <div>
-                    <label style={{ fontSize: 12, color: "var(--text-secondary)", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>
-                      SONG TITLE
-                    </label>
-                    <input
-                      value={songTitle}
-                      onChange={(e) => { setSongTitle(e.target.value); setSubmitError(""); }}
-                      placeholder="Artist – Song Name"
-                      maxLength={60}
-                    />
+                {/* Host song submission */}
+                {submitted ? (
+                  <div className="text-center">
+                    <p style={{ color: "var(--cream)", fontWeight: 300, letterSpacing: "0.1em" }}>✓ Your song is in</p>
+                    <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 4 }}>{songTitle}</p>
                   </div>
-                  <div>
-                    <label style={{ fontSize: 12, color: "var(--text-secondary)", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>
-                      YOUTUBE LINK
-                    </label>
-                    <input
-                      value={youtubeUrl}
-                      onChange={(e) => { setYoutubeUrl(e.target.value); setSubmitError(""); }}
-                      placeholder="https://youtube.com/watch?v=..."
-                      type="url"
-                    />
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "var(--cream)" }}>Submit your song</p>
+                    {/* Title + start-time share a row now that the card is
+                        wide enough — trades one full stacked row's worth of
+                        height for the width we already have, rather than
+                        just leaving that width empty. */}
+                    <div style={{ display: "flex", gap: 12 }}>
+                      <div style={{ flex: 2 }}>
+                        <label style={{ fontSize: 12, color: "var(--text-secondary)", letterSpacing: "0.08em", display: "block", marginBottom: 4 }}>
+                          SONG TITLE
+                        </label>
+                        <input
+                          value={songTitle}
+                          onChange={(e) => { setSongTitle(e.target.value); setSubmitError(""); }}
+                          placeholder="Artist – Song Name"
+                          maxLength={60}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: 12, color: "var(--text-secondary)", letterSpacing: "0.08em", display: "block", marginBottom: 4 }}>
+                          START AT
+                        </label>
+                        <input
+                          value={startTimeInput}
+                          onChange={(e) => setStartTimeInput(e.target.value)}
+                          placeholder="0:00 or 1:23"
+                          style={{ width: "100%" }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 12, color: "var(--text-secondary)", letterSpacing: "0.08em", display: "block", marginBottom: 4 }}>
+                        YOUTUBE LINK
+                      </label>
+                      <input
+                        value={youtubeUrl}
+                        onChange={(e) => { setYoutubeUrl(e.target.value); setSubmitError(""); }}
+                        placeholder="https://youtube.com/watch?v=..."
+                        type="url"
+                      />
+                    </div>
+                    {submitError && <p style={{ color: "var(--danger)", fontSize: 13 }}>{submitError}</p>}
+                    <button className="btn-glow" onClick={submitSong} style={{ width: "100%" }}>
+                      Submit Song 🎵
+                    </button>
                   </div>
-                  <div>
-                    <label style={{ fontSize: 12, color: "var(--text-secondary)", letterSpacing: "0.08em", display: "block", marginBottom: 6 }}>
-                      START AT (optional) — e.g. 1:23 or 83
-                    </label>
-                    <input
-                      value={startTimeInput}
-                      onChange={(e) => setStartTimeInput(e.target.value)}
-                      placeholder="0:00"
-                      style={{ width: "100%" }}
-                    />
+                )}
+
+                {/* Player status */}
+                <div className="text-center" style={{ borderTop: "1px solid rgba(242,236,227,0.08)", paddingTop: 10 }}>
+                  <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 8 }}>
+                    {room.submissions.length} / {room.players.length} submitted
+                  </p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+                    {room.players.map((p) => {
+                      const hasSubmitted = room.submissions.find((s) => s.playerId === p.id);
+                      return (
+                        <div key={p.id} style={{
+                          padding: "4px 12px",
+                          borderRadius: 8,
+                          fontSize: 13,
+                          border: "1px solid",
+                          borderColor: hasSubmitted ? "rgba(226,27,27,0.35)" : "var(--glass-border2)",
+                          background: hasSubmitted ? "rgba(226,27,27,0.06)" : "transparent",
+                          color: hasSubmitted ? "var(--cream)" : "var(--text-secondary)",
+                        }}>
+                          {hasSubmitted ? "✓ " : ""}{p.name}
+                        </div>
+                      );
+                    })}
                   </div>
-                  {submitError && <p style={{ color: "var(--danger)", fontSize: 13 }}>{submitError}</p>}
-                  <button className="btn-glow" onClick={submitSong} style={{ width: "100%" }}>
-                    Submit Song 🎵
+                  <button
+                    className="btn-glow"
+                    onClick={startPlaying}
+                    style={{ marginTop: 10, width: "100%", opacity: allSubmitted ? 1 : 0.6 }}
+                  >
+                    {allSubmitted ? "Start Playing ▶" : `Start Anyway (${room.submissions.length} songs)`}
                   </button>
                 </div>
-              )}
-
-              {/* Player status */}
-              <div className="glass p-4 text-center">
-                <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 8 }}>
-                  {room.submissions.length} / {room.players.length} submitted
-                </p>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-                  {room.players.map((p) => {
-                    const hasSubmitted = room.submissions.find((s) => s.playerId === p.id);
-                    return (
-                      <div key={p.id} style={{
-                        padding: "4px 12px",
-                        borderRadius: 8,
-                        fontSize: 13,
-                        border: "1px solid",
-                        borderColor: hasSubmitted ? "rgba(226,27,27,0.35)" : "var(--glass-border2)",
-                        background: hasSubmitted ? "rgba(226,27,27,0.06)" : "transparent",
-                        color: hasSubmitted ? "var(--cream)" : "var(--text-secondary)",
-                      }}>
-                        {hasSubmitted ? "✓ " : ""}{p.name}
-                      </div>
-                    );
-                  })}
-                </div>
-                <button
-                  className="btn-glow"
-                  onClick={startPlaying}
-                  style={{ marginTop: 16, width: "100%", opacity: allSubmitted ? 1 : 0.6 }}
-                >
-                  {allSubmitted ? "Start Playing ▶" : `Start Anyway (${room.submissions.length} songs)`}
-                </button>
               </div>
             </div>
           )}
