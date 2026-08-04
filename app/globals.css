@@ -59,6 +59,12 @@
 html, body {
   margin: 0; padding: 0;
   min-height: 100vh;
+  /* `zoom` compounds on nested boxes, so html and body both at 1.35
+     multiply to the 1.8225 the whole app's spacing/type scale was
+     actually eyeballed and tuned against across many commits — kept
+     here on purpose, not a bug, so desktop/PC stays exactly as
+     designed. Only real touch phones (media query below) get a
+     different, uncompounded scale. */
   zoom: 1.35;
   overflow-x: hidden;
   font-family: var(--font-body);
@@ -68,6 +74,15 @@ html, body {
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
+}
+
+/* ─── Phone-only override — `(hover: none) and (pointer: coarse)`
+   detects an actual touch-primary device (real phones/tablets), not
+   just a narrow window, so a PC user resizing their browser never
+   loses the desktop scale above. Capped to phone-sized widths too,
+   so a large touch tablet still gets the desktop treatment. ─── */
+@media (hover: none) and (pointer: coarse) and (max-width: 640px) {
+  html, body { zoom: 1; }
 }
 
 /* ─── Grain overlay (grunge texture) ─── */
@@ -329,6 +344,18 @@ select option { background: #f8f6f4; }
   font-family:var(--font-ui);font-size:12px;letter-spacing:0.03em;
   color:var(--text-dark);white-space:nowrap;
   text-shadow:0 1px 2px rgba(255,255,255,0.55);
+}
+
+/* ─── Phone topbar — four labeled nav items plus the logo don't fit a
+   phone's width, so below 640px the labels drop to icon-only (the
+   accessible name moves to aria-label on each button in TopBar.tsx /
+   app/page.tsx) and spacing tightens to match. ─── */
+@media (max-width: 640px) {
+  .topbar{ gap:14px; padding:10px 14px; }
+  .topbar__logo{ font-size:1.3rem; }
+  .topbar__nav{ gap:4px; }
+  .topbar__navItem{ padding:6px 8px; gap:0; }
+  .topbar__navItem span{ display:none; }
 }
 
 /* ─── IG-chrome chat panel — a nod to the old glossy-blue Instagram

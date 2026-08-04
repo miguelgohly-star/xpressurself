@@ -51,21 +51,21 @@ export default function LandingPage() {
       <header className="topbar" style={{ opacity: loaded ? 1 : 0, transition: "opacity 0.8s ease 0.5s" }}>
         <span className="topbar__logo">xpressurself</span>
         <nav className="topbar__nav">
-          <button onClick={() => router.push("/play")} className="topbar__navItem">
+          <button onClick={() => router.push("/play")} className="topbar__navItem" aria-label="play song wars">
             <img src="/play-song-wars-keys.webp" alt=""/>
             <span>play song wars</span>
           </button>
-          <button onClick={() => router.push(session ? "/wheels" : "/auth?callbackUrl=/wheels")} className="topbar__navItem">
+          <button onClick={() => router.push(session ? "/wheels" : "/auth?callbackUrl=/wheels")} className="topbar__navItem" aria-label="your wheels">
             <img src="/wheels-cd-icon.webp" alt=""/>
             <span>your wheels</span>
           </button>
           {session && (
-            <button onClick={() => router.push("/friends")} className="topbar__navItem">
+            <button onClick={() => router.push("/friends")} className="topbar__navItem" aria-label="friends & messages">
               <img src="/friends-cat-icon.webp" alt=""/>
               <span>friends &amp; messages</span>
             </button>
           )}
-          <button onClick={() => router.push(session ? "/account" : "/auth")} className="topbar__navItem">
+          <button onClick={() => router.push(session ? "/account" : "/auth")} className="topbar__navItem" aria-label={session ? "profile" : "sign in"}>
             <img
               src={session?.user?.image || "/profile-camcorder.webp"}
               alt=""

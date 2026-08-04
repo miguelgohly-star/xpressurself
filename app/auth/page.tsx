@@ -150,16 +150,6 @@ function AuthPageInner() {
       <div className="page" style={{ paddingTop: 152, justifyContent: "flex-start" }}>
       <TopBar />
 
-      <div className="text-center animate-fade-in" style={{ marginBottom: 48 }}>
-        <h1 style={{
-          fontFamily: "'Yellowtail', cursive", fontSize: "clamp(3rem, 8vw, 5rem)",
-          fontWeight: 400, color: "#e21b1b",
-          textShadow: "0 0 14px rgba(226,27,27,0.45), 0 0 2px rgba(255,255,255,0.8)",
-          lineHeight: 0.9, marginBottom: 16,
-        }}>xpressurself</h1>
-        <div className="rule" />
-      </div>
-
       <div className="glass animate-fade-in w-full" style={{ maxWidth: 400, padding: "36px 32px" }}>
         {/* Tabs */}
         <div style={{ display: "flex", marginBottom: 32, borderBottom: "1px solid rgba(242,236,227,0.08)" }}>

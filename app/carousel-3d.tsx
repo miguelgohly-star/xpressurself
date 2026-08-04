@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export type Carousel3DItem = {
@@ -37,6 +37,39 @@ export default function Carousel3D({
   const index = ((turn % n) + n) % n;
   const stageRotation = -turn * angleStep;
 
+  // Start assuming full desktop width (matches the server-rendered
+  // markup so hydration doesn't mismatch), then correct to the real
+  // viewport right after mount. The ring's geometry (radius drives a
+  // translateZ in px) can't be shrunk with CSS alone, so on narrow
+  // phone screens every dimension below is scaled down together —
+  // otherwise the card stage is wider than the phone and gets clipped.
+  const [viewportWidth, setViewportWidth] = useState(1200);
+  // The site renders at html/body { zoom: 1.35 } (or 1 on phones — see
+  // globals.css) — window.innerWidth is the real, unzoomed viewport,
+  // while cardWidth/radius are authored px that get multiplied by
+  // zoom on screen. Dividing by the live zoom converts the viewport
+  // into that same authored space so the fit check is correct at
+  // either zoom level, not just whichever one this was last tuned on.
+  const [pageZoom, setPageZoom] = useState(1);
+  useEffect(() => {
+    const onResize = () => {
+      setViewportWidth(window.innerWidth);
+      setPageZoom(parseFloat(getComputedStyle(document.documentElement).zoom || "1") || 1);
+    };
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  const arrowsAndGaps = 38 * 2 + 18 * 2;
+  const sidePadding = 48;
+  const authoredViewport = viewportWidth / pageZoom;
+  const availableWidth = Math.max(160, authoredViewport - arrowsAndGaps - sidePadding);
+  const naturalStageWidth = cardWidth + radius * 0.9;
+  const scale = Math.min(1, availableWidth / naturalStageWidth);
+  const scaledCardWidth = cardWidth * scale;
+  const scaledCardHeight = cardHeight * scale;
+  const scaledRadius = radius * scale;
+
   const step = (dir: 1 | -1) => setTurn(t => t + dir);
 
   const goTo = (i: number) => {
@@ -52,7 +85,7 @@ export default function Carousel3D({
     <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 22 }}>
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "center", gap: 18,
-        width: "100%", maxWidth: cardWidth + radius * 1.6,
+        width: "100%", maxWidth: scaledCardWidth + scaledRadius * 1.6,
       }}>
         <button onClick={() => step(-1)} aria-label="previous" className="carousel3d-arrow">‹</button>
 
@@ -60,13 +93,13 @@ export default function Carousel3D({
           // Rotating around Y never changes a card's vertical extent, so
           // this only needs headroom for shadow/glow bleed — not the
           // radius-scaled buffer the width needs for the horizontal swing.
-          flex: "0 0 auto", width: cardWidth + radius * 0.9, height: cardHeight + 70,
+          flex: "0 0 auto", width: scaledCardWidth + scaledRadius * 0.9, height: scaledCardHeight + 70,
           overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center",
           perspective: 1400,
         }}>
           <div style={{
             transformStyle: "preserve-3d", position: "relative",
-            width: cardWidth, height: cardHeight,
+            width: scaledCardWidth, height: scaledCardHeight,
             transform: `rotateY(${stageRotation}deg)`,
             transition: "transform 0.7s cubic-bezier(0.65, 0, 0.35, 1)",
           }}>
@@ -76,13 +109,13 @@ export default function Carousel3D({
                 style={{
                   position: "absolute", inset: 0, transformStyle: "preserve-3d",
                   backfaceVisibility: "hidden",
-                  transform: `rotateY(${i * angleStep}deg) translateZ(${radius}px)`,
+                  transform: `rotateY(${i * angleStep}deg) translateZ(${scaledRadius}px)`,
                 }}
               >
                 <button
                   onClick={() => (i === index ? router.push(item.href) : goTo(i))}
                   className={`carousel3d-card${i === index ? " carousel3d-card--active" : ""}`}
-                  style={{ width: cardWidth, height: cardHeight }}
+                  style={{ width: scaledCardWidth, height: scaledCardHeight }}
                 >
                   <div className="carousel3d-card__clip">
                     <img src={item.image} alt={item.label} className="carousel3d-card__img"/>
