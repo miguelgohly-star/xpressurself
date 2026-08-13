@@ -59,9 +59,19 @@ export default function VotingScreen({
         )}
       </div>
 
-      <p style={{ color: "var(--text-secondary)", fontSize: 12, textAlign: "center" }}>
-        Category: <strong style={{ color: "var(--cream)" }}>{currentCategory}</strong>
-      </p>
+      {/* Same "Category" badge card /room's one-screen-mode side panel
+          uses (label + var(--font-ui), matching the "Next Song" button's
+          font) — this used to be a plain inline line here, the one
+          remaining visible difference between the two screens now that
+          everyone-mode already shares this whole component. */}
+      <div className="glass" style={{ width: "100%", boxSizing: "border-box", padding: "22px 20px", textAlign: "center", borderRadius: 28 }}>
+        <p style={{ fontSize: 9, letterSpacing: "0.3em", color: "var(--text-faint)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 8 }}>
+          Category
+        </p>
+        <p style={{ fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: 20, letterSpacing: "0.01em", color: "var(--cream)", lineHeight: 1.35 }}>
+          {currentCategory}
+        </p>
+      </div>
     </div>
   );
 }
