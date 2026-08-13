@@ -7,6 +7,7 @@ import YouTubePlayer from "@/components/YouTubePlayer";
 import StarVote from "@/components/StarVote";
 import SongSearch from "@/components/SongSearch";
 import Countdown from "@/components/Countdown";
+import VotingScreen from "@/components/VotingScreen";
 import QRCode from "react-qr-code";
 import type { Room, TimeLimit, SongDuration, ScreenMode, RoundLimit } from "@/lib/gameState";
 import { avgVotes } from "@/lib/gameState";
@@ -936,6 +937,45 @@ export default function HostRoom() {
 
   // PLAYING
   if (room.phase === "playing" && currentSong) {
+    // "Everyone's Screen" — every player's own device plays the video too,
+    // so the host's screen shows the exact same voting UI as /player
+    // (shared VotingScreen) instead of its own differently-laid-out
+    // version. The only thing added on top is the host-only Next Song
+    // control, since players don't get to advance the round themselves.
+    if (room.screenMode === "everyone") {
+      return (
+        <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
+          <img src="/background-song-wars.webp" alt="" style={{
+            position: "fixed", inset: 0, width: "100%", height: "100%",
+            zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
+          }}/>
+          <TopBar hidden />
+          <VotingScreen
+            currentSong={currentSong}
+            currentSongIndex={room.currentSongIndex}
+            totalSongs={room.submissions.length}
+            currentCategory={room.currentCategory}
+            showVideo
+            isMyOwnSong={isMyOwnSong}
+            alreadyVoted={alreadyVoted}
+            onVote={(stars) => castVote(room.currentSongIndex, stars)}
+          />
+          {isHost && (
+            <button
+              className="btn-glow"
+              onClick={nextSong}
+              style={{ marginTop: 20, width: "100%", maxWidth: 400, boxSizing: "border-box", borderRadius: 8, padding: "10px 28px" }}
+            >
+              {room.currentSongIndex + 1 >= room.submissions.length ? "See Results" : "Next Song →"}
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    // "One Screen" — only this screen plays the video, so it keeps its own
+    // TV-style layout (video pinned to a measured position, vote row
+    // floating above it) rather than the single-column phone layout above.
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: 40 }}>
         {/* Fixed to the viewport rather than sized with .page's own box —
@@ -1011,7 +1051,8 @@ export default function HostRoom() {
               <p style={{ fontSize: 9, letterSpacing: "0.3em", color: "var(--text-faint)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 8 }}>
                 Category
               </p>
-              <p style={{ fontFamily: "'Consolas', 'Courier New', monospace", fontWeight: 700, fontSize: 20, letterSpacing: "0.02em", color: "var(--cream)", lineHeight: 1.35 }}>
+              {/* Same font as the "Next Song" button (.btn-glow's var(--font-ui)) — swapped from Consolas, which read fine but didn't match anything else on this card. */}
+              <p style={{ fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: 20, letterSpacing: "0.01em", color: "var(--cream)", lineHeight: 1.35 }}>
                 {room.currentCategory}
               </p>
             </div>

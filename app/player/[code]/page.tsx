@@ -2,10 +2,9 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import StarVote from "@/components/StarVote";
 import SongSearch from "@/components/SongSearch";
 import Countdown from "@/components/Countdown";
-import YouTubePlayer, { isMobileDevice } from "@/components/YouTubePlayer";
+import VotingScreen from "@/components/VotingScreen";
 import type { Room } from "@/lib/gameState";
 import { avgVotes } from "@/lib/gameState";
 import { getSocket } from "@/lib/socket";
@@ -333,54 +332,18 @@ export default function PlayerView() {
 
   // PLAYING — vote while song plays
   if (room.phase === "playing" && currentSong) {
-    const showVideo = room.screenMode === "everyone";
     return (
       <PlayerPageShell hideTopBar>
-        <div style={{ width: "100%", maxWidth: showVideo ? 720 : 400, display: "flex", flexDirection: "column", gap: 20 }}>
-          <div className="text-center">
-            <p style={{ fontSize: 11, letterSpacing: "0.1em", color: "var(--text-secondary)" }}>
-              NOW PLAYING {room.currentSongIndex + 1}/{room.submissions.length}
-            </p>
-            <h3 style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>{currentSong.title}</h3>
-          </div>
-
-          {showVideo && (
-            <>
-              {isMobileDevice() && (
-                <p style={{ color: "var(--text-secondary)", fontSize: 12, textAlign: "center", fontStyle: "italic" }}>
-                  🔊 Tap the video to play it with sound — phones block autoplay with audio
-                </p>
-              )}
-              <YouTubePlayer frame="ipad" youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} />
-            </>
-          )}
-
-          <div className="glass p-8 text-center">
-            {isMyOwnSong ? (
-              <div>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🎤</div>
-                <p style={{ fontWeight: 700 }}>This is your song!</p>
-                <p style={{ color: "var(--text-secondary)", fontSize: 13, marginTop: 8 }}>
-                  Others are voting on it now…
-                </p>
-              </div>
-            ) : (
-              <div>
-                <p style={{ color: "var(--text-secondary)", fontSize: 13, marginBottom: 20 }}>
-                  Rate this song!
-                </p>
-                <StarVote
-                  onVote={(stars) => castVote(room.currentSongIndex, stars)}
-                  voted={alreadyVoted}
-                />
-              </div>
-            )}
-          </div>
-
-          <p style={{ color: "var(--text-secondary)", fontSize: 12, textAlign: "center" }}>
-            Category: <strong style={{ color: "var(--cream)" }}>{room.currentCategory}</strong>
-          </p>
-        </div>
+        <VotingScreen
+          currentSong={currentSong}
+          currentSongIndex={room.currentSongIndex}
+          totalSongs={room.submissions.length}
+          currentCategory={room.currentCategory}
+          showVideo={room.screenMode === "everyone"}
+          isMyOwnSong={isMyOwnSong}
+          alreadyVoted={alreadyVoted}
+          onVote={(stars) => castVote(room.currentSongIndex, stars)}
+        />
       </PlayerPageShell>
     );
   }
