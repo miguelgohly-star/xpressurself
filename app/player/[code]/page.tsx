@@ -30,6 +30,24 @@ function PlayerCountdown() {
   );
 }
 
+// Every phase of this page shares the same shell — same backdrop as /play
+// and the host's room view (for visual consistency across every screen a
+// player might be looking at), same TopBar, same centered "page" layout.
+// `hideTopBar` is only used during active gameplay, to cut clutter while
+// watching the video.
+function PlayerPageShell({ children, hideTopBar = false }: { children: React.ReactNode; hideTopBar?: boolean }) {
+  return (
+    <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
+      <img src="/background-song-wars.webp" alt="" style={{
+        position: "fixed", inset: 0, width: "100%", height: "100%",
+        zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
+      }}/>
+      <TopBar hidden={hideTopBar} />
+      {children}
+    </div>
+  );
+}
+
 export default function PlayerView() {
   const { code } = useParams<{ code: string }>();
   const router = useRouter();
@@ -127,8 +145,7 @@ export default function PlayerView() {
 
   if (kicked) {
     return (
-      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-        <TopBar />
+      <PlayerPageShell>
         <div className="glass p-8 text-center" style={{ maxWidth: 360, width: "100%" }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>👋</div>
           <h2 style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>Removed from the room</h2>
@@ -136,30 +153,28 @@ export default function PlayerView() {
             The host removed you from this room. Taking you back…
           </p>
         </div>
-      </div>
+      </PlayerPageShell>
     );
   }
 
   if (sessionEnded) {
     return (
-      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-        <TopBar />
+      <PlayerPageShell>
         <div className="glass p-8 text-center" style={{ maxWidth: 360, width: "100%" }}>
           <p style={{ fontSize: 15, marginBottom: 8 }}>This game session has ended.</p>
           <p style={{ color: "var(--text-secondary)", fontSize: 13 }}>Taking you back to start a new one…</p>
         </div>
-      </div>
+      </PlayerPageShell>
     );
   }
 
   if (!room) {
     return (
-      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-        <TopBar />
+      <PlayerPageShell>
         <div className="glass p-8 text-center">
           <p style={{ color: "var(--text-secondary)" }}>Connecting…</p>
         </div>
-      </div>
+      </PlayerPageShell>
     );
   }
 
@@ -170,8 +185,7 @@ export default function PlayerView() {
   // LOBBY
   if (room.phase === "lobby") {
     return (
-      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-        <TopBar />
+      <PlayerPageShell>
         <div className="glass p-8 text-center" style={{ maxWidth: 360, width: "100%" }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>🎵</div>
           <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>You're in!</h2>
@@ -197,35 +211,33 @@ export default function PlayerView() {
             Waiting for host to spin…
           </p>
         </div>
-      </div>
+      </PlayerPageShell>
     );
   }
 
   // STARTING — 3s countdown
   if (room.phase === "starting") {
     return (
-      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-        <TopBar />
+      <PlayerPageShell>
         <div className="glass p-10 text-center animate-fade-in" style={{ maxWidth: 360, width: "100%" }}>
           <p style={{ fontSize: 12, letterSpacing: "0.15em", color: "var(--text-secondary)", marginBottom: 16 }}>GET READY</p>
           <PlayerCountdown />
           <p style={{ color: "var(--text-secondary)", fontSize: 14, marginTop: 16 }}>Songs are about to play!</p>
         </div>
-      </div>
+      </PlayerPageShell>
     );
   }
 
   // SPINNING
   if (room.phase === "spinning") {
     return (
-      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-        <TopBar />
+      <PlayerPageShell>
         <div className="glass p-8 text-center animate-fade-in" style={{ maxWidth: 360, width: "100%" }}>
           <div style={{ fontSize: 60, marginBottom: 16, animation: "cd-spin 1s linear infinite" }}>💿</div>
           <p style={{ fontSize: 18, fontWeight: 700 }}>Spinning the wheel…</p>
           <p style={{ color: "var(--text-secondary)", marginTop: 8, fontSize: 14 }}>Get ready to pick a song!</p>
         </div>
-      </div>
+      </PlayerPageShell>
     );
   }
 
@@ -236,8 +248,7 @@ export default function PlayerView() {
 
     if (inTiebreaker && !isInTiebreaker) {
       return (
-        <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-          <TopBar />
+        <PlayerPageShell>
           <div className="glass p-8 text-center" style={{ maxWidth: 360, width: "100%" }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🔥</div>
             <h3 style={{ fontSize: 22, fontWeight: 800 }}>Tiebreaker!</h3>
@@ -245,14 +256,13 @@ export default function PlayerView() {
               Watch the tiebreaker round
             </p>
           </div>
-        </div>
+        </PlayerPageShell>
       );
     }
 
     if (submitted) {
       return (
-        <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-          <TopBar />
+        <PlayerPageShell>
           <div className="glass p-8 text-center animate-fade-in" style={{ maxWidth: 360, width: "100%" }}>
             <div style={{ fontSize: 48, marginBottom: 16 }}>✅</div>
             <h3 style={{ fontSize: 20, fontWeight: 800 }}>Song submitted!</h3>
@@ -263,13 +273,12 @@ export default function PlayerView() {
               {room.submissions.length} / {room.players.length}
             </p>
           </div>
-        </div>
+        </PlayerPageShell>
       );
     }
 
     return (
-      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-        <TopBar />
+      <PlayerPageShell>
         <div style={{ width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", gap: 20 }}>
           <div className="text-center" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
             <p style={{ fontSize: 11, letterSpacing: "0.12em", color: "var(--text-secondary)" }}>CATEGORY</p>
@@ -318,7 +327,7 @@ export default function PlayerView() {
             </button>
           </div>
         </div>
-      </div>
+      </PlayerPageShell>
     );
   }
 
@@ -326,14 +335,7 @@ export default function PlayerView() {
   if (room.phase === "playing" && currentSong) {
     const showVideo = room.screenMode === "everyone";
     return (
-      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-        {/* Same backdrop as /play and the host's room view, for visual
-            consistency across every screen a player might be looking at. */}
-        <img src="/background-song-wars.webp" alt="" style={{
-          position: "fixed", inset: 0, width: "100%", height: "100%",
-          zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
-        }}/>
-        <TopBar hidden />
+      <PlayerPageShell hideTopBar>
         <div style={{ width: "100%", maxWidth: showVideo ? 720 : 400, display: "flex", flexDirection: "column", gap: 20 }}>
           <div className="text-center">
             <p style={{ fontSize: 11, letterSpacing: "0.1em", color: "var(--text-secondary)" }}>
@@ -379,7 +381,7 @@ export default function PlayerView() {
             Category: <strong style={{ color: "var(--cream)" }}>{room.currentCategory}</strong>
           </p>
         </div>
-      </div>
+      </PlayerPageShell>
     );
   }
 
@@ -398,8 +400,7 @@ export default function PlayerView() {
       .sort((a, b) => b.avg - a.avg);
 
     return (
-      <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-        <TopBar />
+      <PlayerPageShell>
         <div style={{ width: "100%", maxWidth: 400, display: "flex", flexDirection: "column", gap: 16 }}>
           <div className="text-center">
             <h2 style={{ fontSize: 26, fontWeight: 900 }}>{room.gameOver ? "Game Over 🏆" : "Results 🏆"}</h2>
@@ -455,16 +456,15 @@ export default function PlayerView() {
             {room.gameOver ? "Waiting for host to start a new game…" : "Waiting for host…"}
           </p>
         </div>
-      </div>
+      </PlayerPageShell>
     );
   }
 
   return (
-    <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-      <TopBar />
+    <PlayerPageShell>
       <div className="glass p-8 text-center">
         <p style={{ color: "var(--text-secondary)" }}>Phase: {room?.phase}</p>
       </div>
-    </div>
+    </PlayerPageShell>
   );
 }

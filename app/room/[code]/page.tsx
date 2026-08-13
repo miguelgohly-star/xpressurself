@@ -122,7 +122,15 @@ export default function HostRoom() {
         * (parseFloat(getComputedStyle(document.body).zoom) || 1);
       setTvTopCenter({
         x: (elRect.left - pageRect.left + elRect.width / 2) / zoom,
-        y: (elRect.top - pageRect.top) / zoom,
+        // Clamped — the floating row (mic/stars + text + vote count) sits
+        // entirely above this point via a translateY(-100%-ish) transform,
+        // so it needs its own height's worth of headroom plus the 26px
+        // gap. A short song title leaves the TV (and so this point) too
+        // close to the top of the page otherwise, clipping the row off
+        // the top of the screen. 160px comfortably fits the tallest
+        // version of that content (the mic + two-line "this is your
+        // song…" text) with room to spare.
+        y: Math.max((elRect.top - pageRect.top) / zoom, 160),
         width: elRect.width / zoom,
       });
     }

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
 interface Props {
   youtubeUrl: string;
@@ -34,6 +34,13 @@ interface Props {
 // checker pattern under the video otherwise). Still rendered video-ON-TOP
 // rather than through the hole, just to keep both frame variants' layering
 // consistent — not a functional requirement at this point.
+//
+// The art also had a baked-in fake lock screen above the video area — an
+// "iPad" label plus a static "20:01 / Thursday, January 1, 2016". Those
+// glyphs were clone-stamped out with sharp (composited over with real
+// background pixels sampled from clear parts of the same gradient bands,
+// avoiding the icons and the screen's right edge) so IpadStatusOverlay
+// below can render a live label/clock in their place instead.
 const FRAMES = {
   tv: {
     src: "/tv-border-alpha-v2.webp",
@@ -55,6 +62,59 @@ const FRAMES = {
 function extractVideoId(url: string): string | null {
   const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
   return m ? m[1] : null;
+}
+
+// Fills the blank spot the "ipad" frame's clone-stamped lock screen left
+// behind — a live label plus each player's own local clock, instead of the
+// frozen "iPad" / "20:01, Thursday, January 1, 2016" that used to be baked
+// into the art. Positions are percentages of the 1347x1020 source image,
+// matching where that original baked-in text sat. Font size rides on the
+// frame wrapper's own container-query width (see containerType below) so
+// it scales with the frame at any render size instead of the viewport.
+// `Date.now()` as the snapshot (not `new Date()`) — useSyncExternalStore
+// compares snapshots with Object.is, and two fresh Date objects are never
+// equal even at the same millisecond, which would trip its "getSnapshot
+// should be cached" infinite-loop guard. A number compares fine.
+function subscribeToClock(callback: () => void) {
+  const id = setInterval(callback, 30_000);
+  return () => clearInterval(id);
+}
+const getClockSnapshot = () => Date.now();
+// No real clock on the server — render nothing until mounted rather than
+// guess, so there's no wrong-timezone flash and nothing to hydrate-mismatch.
+const getServerClockSnapshot = () => null;
+
+function IpadStatusOverlay() {
+  const nowMs = useSyncExternalStore(subscribeToClock, getClockSnapshot, getServerClockSnapshot);
+  if (nowMs === null) return null;
+
+  const now = new Date(nowMs);
+  const time = now.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", hour12: false });
+  const date = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const textShadow = "0 1px 2px rgba(0,0,0,0.5)";
+
+  return (
+    <>
+      <div style={{
+        position: "absolute", left: "5.9%", top: "8.1%", transform: "translateY(-50%)",
+        fontFamily: "var(--font-ui)", fontWeight: 600, color: "#f2f2f2", textShadow,
+        fontSize: "clamp(8px, 2.1cqw, 15px)", letterSpacing: "0.01em", whiteSpace: "nowrap",
+        zIndex: 6, pointerEvents: "none",
+      }}>xpressurself</div>
+      <div style={{
+        position: "absolute", left: "49.3%", top: "13.8%", transform: "translate(-50%, -50%)",
+        fontFamily: "var(--font-ui)", fontWeight: 300, color: "#fff", textShadow,
+        fontSize: "clamp(16px, 6.2cqw, 46px)", letterSpacing: "0.01em", whiteSpace: "nowrap",
+        zIndex: 6, pointerEvents: "none",
+      }}>{time}</div>
+      <div style={{
+        position: "absolute", left: "49.4%", top: "18.7%", transform: "translate(-50%, -50%)",
+        fontFamily: "var(--font-ui)", fontWeight: 400, color: "rgba(255,255,255,0.88)", textShadow,
+        fontSize: "clamp(9px, 3cqw, 20px)", letterSpacing: "0.01em", whiteSpace: "nowrap",
+        zIndex: 6, pointerEvents: "none",
+      }}>{date}</div>
+    </>
+  );
 }
 
 // Mobile browsers block unmuted autoplay of embedded iframes outright — no
@@ -177,7 +237,13 @@ export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, auto
   const { src, aspectRatio, screen: SCREEN, videoOnTop } = FRAMES[frame];
 
   return (
-    <div style={{ width: "100%", maxWidth: 720, margin: "0 auto", position: "relative", aspectRatio }}>
+    <div style={{
+      width: "100%", maxWidth: 720, margin: "0 auto", position: "relative", aspectRatio,
+      // Lets IpadStatusOverlay's text size ride on this box's own rendered
+      // width (cqw) instead of the viewport's, so it scales correctly
+      // however small the parent squeezes the frame down to.
+      containerType: "inline-size",
+    } as React.CSSProperties}>
       {/* Frame artwork — on top (z-index 5) when it has a real transparent
           hole the video shows through ("tv"); behind (z-index 1, same layer
           as the screen box below) when it doesn't ("ipad"), since there's
@@ -187,6 +253,8 @@ export default function YouTubePlayer({ youtubeUrl, startTime = 0, onReady, auto
         alt=""
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: videoOnTop ? 1 : 5, pointerEvents: "none" }}
       />
+
+      {frame === "ipad" && <IpadStatusOverlay />}
 
       {/* Screen area — filled by the video */}
       <div style={{
