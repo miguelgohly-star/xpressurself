@@ -17,7 +17,7 @@ interface Props {
 // real transparent hole in the frame, so the frame can sit ON TOP of the
 // video with its edges genuinely overlapping/covering the video's edges.
 //
-// "ipad" (public/tv-border-ipad-v2.webp, 1347x1020) — derived from the original
+// "ipad" (public/tv-border-ipad-v3.webp, 1347x1020) — derived from the original
 // upload (public/tv border.webp, 1448x1086), which had a fully opaque white
 // canvas and loose ink-splatter/bird artwork surrounding the device, plus a
 // baked-in checkerboard (not real transparency) standing in for the screen.
@@ -40,7 +40,11 @@ interface Props {
 // glyphs were clone-stamped out with sharp (composited over with real
 // background pixels sampled from clear parts of the same gradient bands,
 // avoiding the icons and the screen's right edge) so IpadStatusOverlay
-// below can render a live label/clock in their place instead.
+// below can render a live label/clock in their place instead. Renamed
+// v2 -> v3 on that edit (rather than overwriting the v2 file in place)
+// so browsers/CDNs already caching the old bytes at the old URL are
+// forced to fetch the patched image instead of serving stale iPad/2016
+// text out of cache underneath the live overlay.
 const FRAMES = {
   tv: {
     src: "/tv-border-alpha-v2.webp",
@@ -49,7 +53,7 @@ const FRAMES = {
     videoOnTop: false,
   },
   ipad: {
-    src: "/tv-border-ipad-v2.webp",
+    src: "/tv-border-ipad-v3.webp",
     aspectRatio: "1347/1020",
     // width/height nudged slightly past the measured screen bounds (88.05%
     // / 59.71%) per a real-render check — the video sat about a pixel short
