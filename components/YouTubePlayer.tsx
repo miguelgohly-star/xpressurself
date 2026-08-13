@@ -102,19 +102,27 @@ function IpadStatusOverlay() {
       <div style={{
         position: "absolute", left: "5.9%", top: "8.1%", transform: "translateY(-50%)",
         fontFamily: "var(--font-ui)", fontWeight: 600, color: "#f2f2f2", textShadow,
-        fontSize: "clamp(8px, 2.1cqw, 15px)", letterSpacing: "0.01em", whiteSpace: "nowrap",
+        fontSize: "clamp(8px, 2.1cqw, 15px)", lineHeight: 1, letterSpacing: "0.01em", whiteSpace: "nowrap",
         zIndex: 6, pointerEvents: "none",
       }}>xpressurself</div>
       <div style={{
-        position: "absolute", left: "49.3%", top: "13.8%", transform: "translate(-50%, -50%)",
+        // Centered in the lighter gradient band the art uses for this row
+        // (measured ~y 97-158 of the 1020-tall source, center 12.5%) —
+        // was sitting closer to 13.8%, crowding the darker band the date
+        // sits in right below it. lineHeight:1 matters here as much as the
+        // position does — the font stack's normal line-height was ~1.5x
+        // the glyph size, so the translate(-50%)-centered box was tall
+        // enough to visually overlap the date below even when correctly
+        // centered on this row.
+        position: "absolute", left: "49.3%", top: "12.5%", transform: "translate(-50%, -50%)",
         fontFamily: "var(--font-ui)", fontWeight: 300, color: "#fff", textShadow,
-        fontSize: "clamp(16px, 6.2cqw, 46px)", letterSpacing: "0.01em", whiteSpace: "nowrap",
+        fontSize: "clamp(16px, 6.2cqw, 46px)", lineHeight: 1, letterSpacing: "0.01em", whiteSpace: "nowrap",
         zIndex: 6, pointerEvents: "none",
       }}>{time}</div>
       <div style={{
         position: "absolute", left: "49.4%", top: "18.7%", transform: "translate(-50%, -50%)",
         fontFamily: "var(--font-ui)", fontWeight: 400, color: "rgba(255,255,255,0.88)", textShadow,
-        fontSize: "clamp(9px, 3cqw, 20px)", letterSpacing: "0.01em", whiteSpace: "nowrap",
+        fontSize: "clamp(9px, 3cqw, 20px)", lineHeight: 1, letterSpacing: "0.01em", whiteSpace: "nowrap",
         zIndex: 6, pointerEvents: "none",
       }}>{date}</div>
     </>

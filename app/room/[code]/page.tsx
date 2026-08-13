@@ -1011,7 +1011,7 @@ export default function HostRoom() {
               <p style={{ fontSize: 9, letterSpacing: "0.3em", color: "var(--text-faint)", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 8 }}>
                 Category
               </p>
-              <p style={{ fontFamily: "'Pinyon Script', cursive", fontSize: 28, color: "var(--cream)", lineHeight: 1.2 }}>
+              <p style={{ fontFamily: "'Consolas', 'Courier New', monospace", fontWeight: 700, fontSize: 20, letterSpacing: "0.02em", color: "var(--cream)", lineHeight: 1.35 }}>
                 {room.currentCategory}
               </p>
             </div>
