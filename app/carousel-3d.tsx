@@ -83,8 +83,13 @@ export default function Carousel3D({
 
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", gap: 22 }}>
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "center", gap: 18,
+      {/* Desktop/tablet — the 3D ring. Below 640px it's replaced by the flat
+         stack further down: at small scale, rotateY's perspective visibly
+         squishes the side cards' images (measured ~1.6 aspect ratio on the
+         front card vs ~0.9 on the turned ones — same image, foreshortened
+         by the 3D transform), and only the front card is a single tap. */}
+      <div className="carousel3d-ring-wrap" style={{
+        alignItems: "center", justifyContent: "center", gap: 18,
         width: "100%", maxWidth: scaledCardWidth + scaledRadius * 1.6,
       }}>
         <button onClick={() => step(-1)} aria-label="previous" className="carousel3d-arrow">‹</button>
@@ -140,7 +145,53 @@ export default function Carousel3D({
         <button onClick={() => step(1)} aria-label="next" className="carousel3d-arrow">›</button>
       </div>
 
+      {/* Phone — flat vertical stack. Every option is fully visible and a
+         direct single tap, and the image sits in a fixed-aspect-ratio box
+         (no 3D transform), so it's never foreshortened. */}
+      <div className="carousel3d-stack">
+        {items.map((item) => (
+          <button key={item.id} onClick={() => router.push(item.href)} className="carousel3d-stack__card">
+            <span className="carousel3d-stack__imgWrap">
+              <img src={item.image} alt="" className="carousel3d-stack__img"/>
+              {item.overlay && (
+                <img
+                  src={item.overlay.src}
+                  alt=""
+                  className="carousel3d-card__overlay"
+                  style={{
+                    left: item.overlay.left, top: item.overlay.top,
+                    width: item.overlay.width, height: item.overlay.height,
+                  }}
+                />
+              )}
+            </span>
+            <span className="carousel3d-stack__label">{item.label}</span>
+          </button>
+        ))}
+      </div>
+
       <style>{`
+        .carousel3d-ring-wrap{ display:flex; }
+        .carousel3d-stack{ display:none; }
+        @media (max-width:640px){
+          .carousel3d-ring-wrap{ display:none; }
+          .carousel3d-stack{ display:flex; flex-direction:column; gap:14px; width:100%; max-width:360px; }
+        }
+        .carousel3d-stack__card{
+          width:100%;padding:10px;border:none;border-radius:14px;cursor:pointer;
+          background:#fbfaf7;display:flex;align-items:center;gap:16px;text-align:left;
+          box-shadow:0 1px 0 rgba(255,255,255,0.9) inset,0 2px 4px rgba(30,26,20,0.12),0 14px 28px rgba(30,26,20,0.2);
+          transition:transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .carousel3d-stack__card:active{ transform:scale(0.98); }
+        .carousel3d-stack__imgWrap{
+          position:relative;flex:0 0 auto;width:88px;aspect-ratio:${cardWidth}/${cardHeight};
+          border-radius:10px;overflow:hidden;display:block;
+        }
+        .carousel3d-stack__img{ position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none; }
+        .carousel3d-stack__label{
+          font-family:var(--font-ui);font-size:14px;color:var(--text-dark);flex:1;
+        }
         .carousel3d-arrow{
           flex:0 0 auto; width:38px; height:38px; border-radius:50%; border:none; cursor:pointer;
           background:#fbfaf7; color:var(--text-dark); font-size:18px; line-height:1;

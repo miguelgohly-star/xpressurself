@@ -287,6 +287,24 @@ select option { background: #f8f6f4; }
 .submit-grid { display: flex; flex-direction: column; align-items: center; gap: 32px; width: 100%; }
 @media (min-width: 860px) { .submit-grid { flex-direction: row; align-items: flex-start; justify-content: center; gap: 48px; } .submit-grid .submit-wheel { flex: 0 0 auto; } .submit-grid .submit-form { flex: 1 1 0; max-width: 960px; } }
 
+/* ─── Room lobby (app/room/[code]/page.tsx) — Room Code / Game Settings /
+   Wheels. Below 860px these stack full-width in a column so every
+   setting button gets the whole viewport to lay out in; at 860px+ they
+   sit side by side as three columns with divider rules between them
+   (the original design, built for the host's TV/desktop screen). The
+   card's 38vh cap only applies once it's an actual 3-column row —
+   stacked on phone, it needs to grow with its content instead. ─── */
+.room-lobby-card { max-height: none; }
+@media (min-width: 860px) { .room-lobby-card { max-height: 38vh; min-height: 220px; } }
+.room-settings-row { display: flex; flex-direction: column; gap: 28px; flex: 1 1 auto; min-height: 0; }
+@media (min-width: 860px) { .room-settings-row { flex-direction: row; } }
+.room-settings-col--left { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 8px; }
+@media (min-width: 860px) { .room-settings-col--left { flex: 0 0 28%; padding-right: 32px; border-right: 1px solid var(--glass-border2); } }
+.room-settings-col--mid { display: flex; flex-direction: column; }
+@media (min-width: 860px) { .room-settings-col--mid { flex: 0 0 40%; padding: 0 32px; border-right: 1px solid var(--glass-border2); } }
+.room-settings-col--right { display: flex; flex-direction: column; align-items: center; min-height: 0; }
+@media (min-width: 860px) { .room-settings-col--right { flex: 0 0 32%; padding-left: 32px; overflow-y: auto; } }
+
 /* ─── Shared top bar (components/TopBar.tsx) — kept in manual sync with
    app/page.tsx's own inline <style> block, which defines the identical
    rules for the landing page and cannot be edited/extracted from.

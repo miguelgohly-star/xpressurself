@@ -387,9 +387,9 @@ export default function HostRoom() {
         }}/>
         <TopBar />
         <div className="page-wide" style={{ width: "100%" }}>
-          <div className="glass" style={{
+          <div className="glass room-lobby-card" style={{
             width: "100%", maxWidth: 1180, margin: "0 auto",
-            maxHeight: "38vh", minHeight: 220,
+            minHeight: 220,
             display: "flex", flexDirection: "column",
             padding: "22px 36px",
           }}>
@@ -400,14 +400,10 @@ export default function HostRoom() {
             {/* Upper section — Room / Settings / Wheels. Only the Wheels column
                scrolls internally (its list can grow arbitrarily long); Room Code
                and Game Settings never need to. */}
-            <div style={{ display: "flex", flex: "1 1 auto", minHeight: 0 }}>
+            <div className="room-settings-row">
 
-              {/* Left — Room code + invite (~28%) */}
-              <div style={{
-                flex: "0 0 28%", display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center", textAlign: "center",
-                gap: 8, paddingRight: 32, borderRight: "1px solid var(--glass-border2)",
-              }}>
+              {/* Left — Room code + invite (~28% at 860px+) */}
+              <div className="room-settings-col--left">
                 <p style={colLabel}>Room Code</p>
                 <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <div
@@ -521,11 +517,8 @@ export default function HostRoom() {
                 </div>
               </div>
 
-              {/* Middle — Game settings (~40%) */}
-              <div style={{
-                flex: "0 0 40%", display: "flex", flexDirection: "column",
-                padding: "0 32px", borderRight: "1px solid var(--glass-border2)",
-              }}>
+              {/* Middle — Game settings (~40% at 860px+) */}
+              <div className="room-settings-col--mid">
                 <p style={colLabel}>Game Settings</p>
                 {isHost ? (
                   <div style={{ display: "flex", flexDirection: "column" }}>
@@ -647,11 +640,8 @@ export default function HostRoom() {
                 )}
               </div>
 
-              {/* Right — Wheels list (~32%) — its own independent scroll region */}
-              <div style={{
-                flex: "0 0 32%", display: "flex", flexDirection: "column",
-                alignItems: "center", paddingLeft: 32, minHeight: 0, overflowY: "auto",
-              }}>
+              {/* Right — Wheels list (~32% at 860px+) — its own independent scroll region there */}
+              <div className="room-settings-col--right">
                 <p style={{ ...colLabel, flexShrink: 0 }}>Wheels</p>
                 {isHost ? (
                   <div style={{ display: "flex", flexDirection: "column", gap: 6, width: "100%" }}>
