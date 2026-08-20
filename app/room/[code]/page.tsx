@@ -9,6 +9,7 @@ import SongSearch from "@/components/SongSearch";
 import Countdown from "@/components/Countdown";
 import VotingScreen from "@/components/VotingScreen";
 import SongTimer from "@/components/SongTimer";
+import SlideToSkip from "@/components/SlideToSkip";
 import QRCode from "react-qr-code";
 import type { Room, TimeLimit, SongDuration, ScreenMode, RoundLimit } from "@/lib/gameState";
 import { avgVotes } from "@/lib/gameState";
@@ -904,9 +905,8 @@ export default function HostRoom() {
   if (room.phase === "playing" && currentSong) {
     // "Everyone's Screen" — every player's own device plays the video too,
     // so the host's screen shows the exact same voting UI as /player
-    // (shared VotingScreen) instead of its own differently-laid-out
-    // version. The only thing added on top is the host-only Next Song
-    // control, since players don't get to advance the round themselves.
+    // (shared VotingScreen, skip vote included) instead of its own
+    // differently-laid-out version.
     if (room.screenMode === "everyone") {
       return (
         <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
@@ -928,16 +928,11 @@ export default function HostRoom() {
             songDuration={room.songDuration}
             songStartedAt={room.songStartedAt}
             onExpire={isHost ? nextSong : undefined}
+            skipVoterIds={room.skipVoterIds}
+            totalPlayers={room.players.length}
+            myId={s.current.id}
+            onSkipVote={() => s.current.emit("skip-vote", { code })}
           />
-          {isHost && (
-            <button
-              className="btn-glow"
-              onClick={nextSong}
-              style={{ marginTop: 20, width: "100%", maxWidth: 400, boxSizing: "border-box", borderRadius: 8, padding: "10px 28px" }}
-            >
-              {room.currentSongIndex + 1 >= room.submissions.length ? "See Results" : "Next Song →"}
-            </button>
-          )}
         </div>
       );
     }
@@ -1047,11 +1042,18 @@ export default function HostRoom() {
               </div>
             </div>
 
-            {isHost && (
-              <button className="btn-glow" onClick={nextSong} style={{ width: "100%", boxSizing: "border-box", borderRadius: 8, padding: "10px 28px" }}>
-                {room.currentSongIndex + 1 >= room.submissions.length ? "See Results" : "Next Song →"}
-              </button>
-            )}
+            {(() => {
+              const iVotedSkip = room.skipVoterIds.includes(s.current.id ?? "");
+              const skipLabel = room.currentSongIndex + 1 >= room.submissions.length ? "Slide to see results" : "Slide to skip";
+              const tally = `${room.skipVoterIds.length}/${room.players.length}`;
+              return (
+                <SlideToSkip
+                  label={iVotedSkip ? `Waiting for others… (${tally})` : `${skipLabel} (${tally})`}
+                  onConfirm={() => s.current.emit("skip-vote", { code })}
+                  disabled={iVotedSkip}
+                />
+              );
+            })()}
           </div>
         </div>
       </div>

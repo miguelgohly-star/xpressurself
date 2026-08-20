@@ -142,6 +142,10 @@ export default function PlayerView() {
     setVotedSongs((prev) => new Set([...prev, songIndex]));
   };
 
+  const castSkipVote = () => {
+    s.current.emit("skip-vote", { code });
+  };
+
   if (kicked) {
     return (
       <PlayerPageShell>
@@ -346,6 +350,10 @@ export default function PlayerView() {
           onVideoReady={() => s.current.emit("video-ready", { code })}
           songDuration={room.songDuration}
           songStartedAt={room.songStartedAt}
+          skipVoterIds={room.skipVoterIds}
+          totalPlayers={room.players.length}
+          myId={myId}
+          onSkipVote={castSkipVote}
         />
       </PlayerPageShell>
     );

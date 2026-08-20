@@ -2,16 +2,18 @@
 import YouTubePlayer, { isMobileDevice } from "@/components/YouTubePlayer";
 import StarVote from "@/components/StarVote";
 import SongTimer from "@/components/SongTimer";
+import SlideToSkip from "@/components/SlideToSkip";
 import type { SongSubmission } from "@/lib/gameState";
 
 // Shared between /player and /room (when screenMode is "everyone") so both
 // screens show the identical voting UI — song header, video, vote widget,
-// category line. /room adds its own host-only controls (Next Song, etc.)
-// around this rather than maintaining a second, differently-laid-out copy.
+// category line, skip vote. /room adds its own host-only controls around
+// this rather than maintaining a second, differently-laid-out copy.
 export default function VotingScreen({
   currentSong, currentSongIndex, totalSongs, currentCategory,
   showVideo, isMyOwnSong, alreadyVoted, onVote,
   onVideoReady, songDuration, songStartedAt, onExpire,
+  skipVoterIds, totalPlayers, myId, onSkipVote,
 }: {
   currentSong: SongSubmission;
   currentSongIndex: number;
@@ -25,7 +27,13 @@ export default function VotingScreen({
   songDuration?: number | null;
   songStartedAt?: number | null;
   onExpire?: () => void;
+  skipVoterIds: string[];
+  totalPlayers: number;
+  myId: string | null | undefined;
+  onSkipVote: () => void;
 }) {
+  const iVotedSkip = skipVoterIds.includes(myId ?? "");
+  const skipLabel = currentSongIndex + 1 >= totalSongs ? "Slide to see results" : "Slide to skip";
   return (
     <div style={{ width: "100%", maxWidth: showVideo ? 720 : 400, display: "flex", flexDirection: "column", gap: 20 }}>
       <div className="text-center">
@@ -82,6 +90,17 @@ export default function VotingScreen({
         <p style={{ fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: 20, letterSpacing: "0.01em", color: "var(--cream)", lineHeight: 1.35 }}>
           {currentCategory}
         </p>
+      </div>
+
+      {/* A majority (>50% of room.players) voting to skip advances the song
+          immediately — see the "skip-vote" handler in server.ts. Slides,
+          not taps, so it can't be triggered by an accidental single click. */}
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <SlideToSkip
+          label={iVotedSkip ? `Waiting for others… (${skipVoterIds.length}/${totalPlayers})` : `${skipLabel} (${skipVoterIds.length}/${totalPlayers})`}
+          onConfirm={onSkipVote}
+          disabled={iVotedSkip}
+        />
       </div>
     </div>
   );

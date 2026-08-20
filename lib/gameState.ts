@@ -50,6 +50,7 @@ export interface Room {
   gameOver: boolean; // true once roundNumber has reached roundLimit
   songStartedAt: number | null; // Date.now() the current song's countdown may start — null while still waiting (see resetSongReadiness)
   readyPlayerIds: string[]; // players whose own video has reported ready for the current song, in "everyone" screen mode
+  skipVoterIds: string[]; // players who've voted to skip the current song — a majority (>50% of room.players) auto-advances it
 }
 
 const DEFAULT_CATEGORIES = [
@@ -100,6 +101,7 @@ export function createRoom(hostId: string, hostName: string, avatarUrl: string |
     gameOver: false,
     songStartedAt: null,
     readyPlayerIds: [],
+    skipVoterIds: [],
   };
 
   rooms.set(code, room);
@@ -278,15 +280,23 @@ export function nextSong(code: string): Room | null {
   return room;
 }
 
-// Clears per-song "is this player's video ready" tracking and the shared
-// countdown's start timestamp — called by server.ts every time a new song
-// enters the "playing" phase, before it decides (based on screenMode)
-// whether the countdown can start immediately or has to wait.
+// Clears per-song "is this player's video ready" tracking, the shared
+// countdown's start timestamp, and skip votes — called by server.ts every
+// time a new song enters the "playing" phase, before it decides (based on
+// screenMode) whether the countdown can start immediately or has to wait.
 export function resetSongReadiness(code: string): Room | null {
   const room = rooms.get(code);
   if (!room) return null;
   room.readyPlayerIds = [];
   room.songStartedAt = null;
+  room.skipVoterIds = [];
+  return room;
+}
+
+export function castSkipVote(code: string, playerId: string): Room | null {
+  const room = rooms.get(code);
+  if (!room) return null;
+  if (!room.skipVoterIds.includes(playerId)) room.skipVoterIds.push(playerId);
   return room;
 }
 
@@ -378,6 +388,7 @@ export function advanceRound(code: string): Room | null {
   room.roundNumber += 1;
   room.songStartedAt = null;
   room.readyPlayerIds = [];
+  room.skipVoterIds = [];
   return room;
 }
 
@@ -394,6 +405,7 @@ export function restartGame(code: string): Room | null {
   room.gameOver = false;
   room.songStartedAt = null;
   room.readyPlayerIds = [];
+  room.skipVoterIds = [];
   for (const p of room.players) {
     p.totalScore = 0;
     p.roundsPlayed = 0;

@@ -20,6 +20,7 @@ import {
   resetSongReadiness,
   markPlayerReady,
   setSongStartedAt,
+  castSkipVote,
   startTiebreaker,
   finalizeRound,
   advanceRound,
@@ -153,6 +154,29 @@ app.prepare().then(() => {
       readinessTimers.set(code, setTimeout(() => startSongPlayback(code), READY_TIMEOUT_MS));
     } else {
       setSongStartedAt(code);
+    }
+  }
+
+  // Moves the room to the next song (or, past the last one, to results) —
+  // shared by the host's timeout-driven auto-skip and by a skip vote
+  // reaching majority. A tiebreaker replays the same round for just the
+  // tied players, so only fold scores into the cumulative leaderboard on
+  // the original (non-tiebreaker) pass — otherwise those players' scores
+  // would be counted twice for what is really still one round.
+  function advanceSong(code: string) {
+    const updated = nextSong(code);
+    if (!updated) return;
+
+    if (updated.currentSongIndex >= updated.submissions.length) {
+      if (updated.tiedPlayers.length === 0) {
+        finalizeRound(code);
+      }
+      clearReadinessTimer(code);
+      setPhase(code, "results");
+      io.to(code).emit("room-updated", getRoom(code));
+    } else {
+      beginSongReadinessWait(code);
+      io.to(code).emit("room-updated", getRoom(code));
     }
   }
 
@@ -316,27 +340,26 @@ app.prepare().then(() => {
       io.to(code).emit("room-updated", room);
     });
 
+    // Host-only, timeout-driven: fired by the host's own SongTimer expiring
+    // once songDuration runs out. A manual player-facing skip instead goes
+    // through "skip-vote" below, gated on reaching a majority.
     socket.on("next-song", ({ code }: { code: string }) => {
       const room = getRoom(code);
       if (!room || socket.id !== room.hostId) return;
+      advanceSong(code);
+    });
 
-      const updated = nextSong(code);
+    // Any player (including the host) can vote to skip the current song.
+    // Once more than half the room has voted, it advances immediately —
+    // same underlying transition as the timeout-driven auto-skip above.
+    socket.on("skip-vote", ({ code }: { code: string }) => {
+      const room = getRoom(code);
+      if (!room || room.phase !== "playing") return;
+      const updated = castSkipVote(code, socket.id);
       if (!updated) return;
-
-      if (updated.currentSongIndex >= updated.submissions.length) {
-        // A tiebreaker replays the same round for just the tied players, so
-        // only fold scores into the cumulative leaderboard on the original
-        // (non-tiebreaker) pass — otherwise those players' scores would be
-        // counted twice for what is really still one round.
-        if (updated.tiedPlayers.length === 0) {
-          finalizeRound(code);
-        }
-        clearReadinessTimer(code);
-        setPhase(code, "results");
-        io.to(code).emit("room-updated", getRoom(code));
-      } else {
-        beginSongReadinessWait(code);
-        io.to(code).emit("room-updated", getRoom(code));
+      io.to(code).emit("room-updated", updated);
+      if (updated.players.length > 0 && updated.skipVoterIds.length / updated.players.length > 0.5) {
+        advanceSong(code);
       }
     });
 
