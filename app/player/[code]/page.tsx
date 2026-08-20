@@ -343,6 +343,9 @@ export default function PlayerView() {
           isMyOwnSong={isMyOwnSong}
           alreadyVoted={alreadyVoted}
           onVote={(stars) => castVote(room.currentSongIndex, stars)}
+          onVideoReady={() => s.current.emit("video-ready", { code })}
+          songDuration={room.songDuration}
+          songStartedAt={room.songStartedAt}
         />
       </PlayerPageShell>
     );

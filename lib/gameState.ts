@@ -48,6 +48,8 @@ export interface Room {
   roundLimit: RoundLimit;
   roundNumber: number; // which round of roundLimit we're currently on / just finished
   gameOver: boolean; // true once roundNumber has reached roundLimit
+  songStartedAt: number | null; // Date.now() the current song's countdown may start — null while still waiting (see resetSongReadiness)
+  readyPlayerIds: string[]; // players whose own video has reported ready for the current song, in "everyone" screen mode
 }
 
 const DEFAULT_CATEGORIES = [
@@ -96,6 +98,8 @@ export function createRoom(hostId: string, hostName: string, avatarUrl: string |
     roundLimit: 3,
     roundNumber: 1,
     gameOver: false,
+    songStartedAt: null,
+    readyPlayerIds: [],
   };
 
   rooms.set(code, room);
@@ -261,6 +265,32 @@ export function nextSong(code: string): Room | null {
   return room;
 }
 
+// Clears per-song "is this player's video ready" tracking and the shared
+// countdown's start timestamp — called by server.ts every time a new song
+// enters the "playing" phase, before it decides (based on screenMode)
+// whether the countdown can start immediately or has to wait.
+export function resetSongReadiness(code: string): Room | null {
+  const room = rooms.get(code);
+  if (!room) return null;
+  room.readyPlayerIds = [];
+  room.songStartedAt = null;
+  return room;
+}
+
+export function markPlayerReady(code: string, playerId: string): Room | null {
+  const room = rooms.get(code);
+  if (!room) return null;
+  if (!room.readyPlayerIds.includes(playerId)) room.readyPlayerIds.push(playerId);
+  return room;
+}
+
+export function setSongStartedAt(code: string): Room | null {
+  const room = rooms.get(code);
+  if (!room) return null;
+  room.songStartedAt = Date.now();
+  return room;
+}
+
 export function avgVotes(votes: Record<string, number>): number {
   const values = Object.values(votes);
   return values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
@@ -333,6 +363,8 @@ export function advanceRound(code: string): Room | null {
   room.tiedPlayers = [];
   room.submissionDeadline = null;
   room.roundNumber += 1;
+  room.songStartedAt = null;
+  room.readyPlayerIds = [];
   return room;
 }
 
@@ -347,6 +379,8 @@ export function restartGame(code: string): Room | null {
   room.submissionDeadline = null;
   room.roundNumber = 1;
   room.gameOver = false;
+  room.songStartedAt = null;
+  room.readyPlayerIds = [];
   for (const p of room.players) {
     p.totalScore = 0;
     p.roundsPlayed = 0;

@@ -1,6 +1,7 @@
 "use client";
 import YouTubePlayer, { isMobileDevice } from "@/components/YouTubePlayer";
 import StarVote from "@/components/StarVote";
+import SongTimer from "@/components/SongTimer";
 import type { SongSubmission } from "@/lib/gameState";
 
 // Shared between /player and /room (when screenMode is "everyone") so both
@@ -10,6 +11,7 @@ import type { SongSubmission } from "@/lib/gameState";
 export default function VotingScreen({
   currentSong, currentSongIndex, totalSongs, currentCategory,
   showVideo, isMyOwnSong, alreadyVoted, onVote,
+  onVideoReady, songDuration, songStartedAt, onExpire,
 }: {
   currentSong: SongSubmission;
   currentSongIndex: number;
@@ -19,6 +21,10 @@ export default function VotingScreen({
   isMyOwnSong: boolean;
   alreadyVoted: boolean;
   onVote: (stars: number) => void;
+  onVideoReady?: () => void;
+  songDuration?: number | null;
+  songStartedAt?: number | null;
+  onExpire?: () => void;
 }) {
   return (
     <div style={{ width: "100%", maxWidth: showVideo ? 720 : 400, display: "flex", flexDirection: "column", gap: 20 }}>
@@ -27,6 +33,11 @@ export default function VotingScreen({
           NOW PLAYING {currentSongIndex + 1}/{totalSongs}
         </p>
         <h3 style={{ fontSize: 20, fontWeight: 800, marginTop: 4 }}>{currentSong.title}</h3>
+        {showVideo && songDuration && (
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <SongTimer key={currentSongIndex} duration={songDuration} songStartedAt={songStartedAt ?? null} onExpire={onExpire} />
+          </div>
+        )}
       </div>
 
       {showVideo && (
@@ -36,7 +47,7 @@ export default function VotingScreen({
               🔊 Tap the video to play it with sound — phones block autoplay with audio
             </p>
           )}
-          <YouTubePlayer frame="ipad" youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} />
+          <YouTubePlayer frame="ipad" youtubeUrl={currentSong.youtubeUrl} startTime={currentSong.startTime} onReady={onVideoReady} />
         </>
       )}
 

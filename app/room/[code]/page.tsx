@@ -8,6 +8,7 @@ import StarVote from "@/components/StarVote";
 import SongSearch from "@/components/SongSearch";
 import Countdown from "@/components/Countdown";
 import VotingScreen from "@/components/VotingScreen";
+import SongTimer from "@/components/SongTimer";
 import QRCode from "react-qr-code";
 import type { Room, TimeLimit, SongDuration, ScreenMode, RoundLimit } from "@/lib/gameState";
 import { avgVotes } from "@/lib/gameState";
@@ -33,36 +34,6 @@ function StartingCountdown() {
       transition: "all 0.3s",
     }}>
       {n > 0 ? n : "GO!"}
-    </div>
-  );
-}
-
-function SongTimer({ duration, onExpire }: { duration: number; onExpire?: () => void }) {
-  const [remaining, setRemaining] = useState(duration);
-  const calledRef = useRef(false);
-  useEffect(() => {
-    if (remaining <= 0) {
-      if (!calledRef.current) { calledRef.current = true; onExpire?.(); }
-      return;
-    }
-    const t = setTimeout(() => setRemaining((p) => p - 1), 1000);
-    return () => clearTimeout(t);
-  }, [remaining, onExpire]);
-  const pct = (remaining / duration) * 100;
-  const urgent = remaining <= 5;
-  return (
-    <div style={{ marginTop: 6 }}>
-      <div style={{ height: 4, borderRadius: 2, background: "rgba(30,26,20,0.1)", overflow: "hidden", width: 200 }}>
-        <div style={{
-          height: "100%", borderRadius: 2,
-          width: `${pct}%`,
-          background: urgent ? "var(--danger)" : "var(--cream)",
-          transition: "width 1s linear, background 0.3s",
-        }} />
-      </div>
-      <p style={{ fontSize: 12, color: urgent ? "var(--danger)" : "var(--text-secondary)", marginTop: 4 }}>
-        {remaining}s remaining
-      </p>
     </div>
   );
 }
@@ -229,18 +200,22 @@ export default function HostRoom() {
 
   // Lock this page in place — no scrolling, same as every other page in the
   // app. The spinning/submitting card is sized to fit without it instead
-  // (see the width bump below).
+  // (see the width bump below). The results phase is the exception: its
+  // leaderboard + Next Round button can run taller than the viewport
+  // (especially with more players, or the desktop zoom scale), so it needs
+  // to scroll or the button is unreachable.
   useEffect(() => {
     const { documentElement: html, body } = document;
     const prevHtml = html.style.overflow;
     const prevBody = body.style.overflow;
-    html.style.overflow = "hidden";
-    body.style.overflow = "hidden";
+    const locked = room?.phase !== "results";
+    html.style.overflow = locked ? "hidden" : "";
+    body.style.overflow = locked ? "hidden" : "";
     return () => {
       html.style.overflow = prevHtml;
       body.style.overflow = prevBody;
     };
-  }, []);
+  }, [room?.phase]);
 
   const applyWheel = (wheelId: string) => {
     setSelectedWheelId(wheelId);
@@ -949,6 +924,10 @@ export default function HostRoom() {
             isMyOwnSong={isMyOwnSong}
             alreadyVoted={alreadyVoted}
             onVote={(stars) => castVote(room.currentSongIndex, stars)}
+            onVideoReady={() => s.current.emit("video-ready", { code })}
+            songDuration={room.songDuration}
+            songStartedAt={room.songStartedAt}
+            onExpire={isHost ? nextSong : undefined}
           />
           {isHost && (
             <button
@@ -1025,7 +1004,7 @@ export default function HostRoom() {
                 </h2>
               </div>
               {room.songDuration && (
-                <SongTimer key={room.currentSongIndex} duration={room.songDuration} onExpire={isHost ? nextSong : undefined} />
+                <SongTimer key={room.currentSongIndex} duration={room.songDuration} songStartedAt={room.songStartedAt} onExpire={isHost ? nextSong : undefined} />
               )}
             </div>
 

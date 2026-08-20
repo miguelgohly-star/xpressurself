@@ -17,6 +17,9 @@ import {
   submitSong,
   castVote,
   nextSong,
+  resetSongReadiness,
+  markPlayerReady,
+  setSongStartedAt,
   startTiebreaker,
   finalizeRound,
   advanceRound,
@@ -33,6 +36,11 @@ const handle = app.getRequestHandler();
 
 // Track per-room submission timers so we can clear them
 const submissionTimers = new Map<string, ReturnType<typeof setTimeout>>();
+// Fallback timers so a stuck/offline player's device can't freeze the game
+// forever while "everyone" screen mode waits for every video to report
+// ready (see beginSongReadinessWait / the "video-ready" handler below).
+const readinessTimers = new Map<string, ReturnType<typeof setTimeout>>();
+const READY_TIMEOUT_MS = 15_000;
 
 const MIME_TYPES: Record<string, string> = {
   ".js": "application/javascript; charset=utf-8",
@@ -113,6 +121,41 @@ app.prepare().then(() => {
   const disconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
   const DISCONNECT_GRACE_MS = 60_000;
 
+  function clearReadinessTimer(code: string) {
+    const t = readinessTimers.get(code);
+    if (t) { clearTimeout(t); readinessTimers.delete(code); }
+  }
+
+  // Stamps the shared countdown's start time and broadcasts it — safe to
+  // call more than once (e.g. from both the last "video-ready" and a
+  // fallback timer racing each other), only the first call actually starts it.
+  function startSongPlayback(code: string) {
+    clearReadinessTimer(code);
+    const room = getRoom(code);
+    if (!room || room.phase !== "playing" || room.songStartedAt) return;
+    setSongStartedAt(code);
+    io.to(code).emit("room-updated", getRoom(code));
+  }
+
+  // Called every time a new song enters the "playing" phase. "shared" screen
+  // mode (or no duration configured) only has one screen to wait on, so the
+  // countdown starts immediately. "everyone" mode waits for every player's
+  // own device to report its video is ready (see "video-ready" below) before
+  // starting the shared countdown, so nobody's timer can run out before
+  // their video has even loaded — with a timeout fallback so one stuck
+  // device can't freeze the game indefinitely.
+  function beginSongReadinessWait(code: string) {
+    const room = getRoom(code);
+    if (!room) return;
+    resetSongReadiness(code);
+    clearReadinessTimer(code);
+    if (room.screenMode === "everyone" && room.songDuration) {
+      readinessTimers.set(code, setTimeout(() => startSongPlayback(code), READY_TIMEOUT_MS));
+    } else {
+      setSongStartedAt(code);
+    }
+  }
+
   function beginCountdownThenPlay(code: string) {
     setPhase(code, "starting");
     io.to(code).emit("room-updated", getRoom(code));
@@ -120,6 +163,7 @@ app.prepare().then(() => {
       const r = getRoom(code);
       if (!r || r.phase !== "starting") return;
       setPhase(code, "playing");
+      beginSongReadinessWait(code);
       io.to(code).emit("room-updated", getRoom(code));
     }, 3000);
   }
@@ -287,10 +331,27 @@ app.prepare().then(() => {
         if (updated.tiedPlayers.length === 0) {
           finalizeRound(code);
         }
+        clearReadinessTimer(code);
         setPhase(code, "results");
         io.to(code).emit("room-updated", getRoom(code));
       } else {
-        io.to(code).emit("room-updated", updated);
+        beginSongReadinessWait(code);
+        io.to(code).emit("room-updated", getRoom(code));
+      }
+    });
+
+    // "Everyone" screen mode: each player's own device reports here once its
+    // YouTube iframe fires onReady. Once every player has checked in, the
+    // shared countdown starts (see startSongPlayback) — see also the timeout
+    // fallback set up in beginSongReadinessWait for a device that never does.
+    socket.on("video-ready", ({ code }: { code: string }) => {
+      const room = getRoom(code);
+      if (!room || room.phase !== "playing" || room.screenMode !== "everyone" || room.songStartedAt) return;
+      const updated = markPlayerReady(code, socket.id);
+      if (!updated) return;
+      io.to(code).emit("room-updated", updated);
+      if (updated.readyPlayerIds.length >= updated.players.length) {
+        startSongPlayback(code);
       }
     });
 
@@ -309,6 +370,7 @@ app.prepare().then(() => {
       const timer = submissionTimers.get(code);
       if (timer) clearTimeout(timer);
       submissionTimers.delete(code);
+      clearReadinessTimer(code);
       const updated = advanceRound(code);
       if (!updated) return;
       startSpin(code);
@@ -320,6 +382,7 @@ app.prepare().then(() => {
       const timer = submissionTimers.get(code);
       if (timer) clearTimeout(timer);
       submissionTimers.delete(code);
+      clearReadinessTimer(code);
       const updated = restartGame(code);
       if (!updated) return;
       io.to(code).emit("room-updated", updated);
