@@ -413,6 +413,14 @@ app.prepare().then(() => {
       const playerId = socket.id;
       const timer = setTimeout(() => {
         disconnectTimers.delete(playerId);
+        // Once a game is actively in progress, a dropped connection should
+        // never auto-remove someone — join-room's reclaim-by-name lets them
+        // step back into their seat (host status, submission, votes and
+        // all) no matter how long they were away. Only a still-"lobby" room
+        // auto-cleans an idle disconnected player after the grace period;
+        // mid-game, only the host's explicit Kick removes someone.
+        const room = getRoom(code);
+        if (!room || room.phase !== "lobby") return;
         const updated = leaveRoom(code, playerId);
         if (updated) io.to(code).emit("room-updated", updated);
       }, DISCONNECT_GRACE_MS);

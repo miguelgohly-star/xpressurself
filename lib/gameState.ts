@@ -127,10 +127,23 @@ export function joinRoom(code: string, playerId: string, playerName: string, ava
     (p) => p.name.toLowerCase() === trimmedName.toLowerCase()
   );
   if (existingByName) {
+    const oldId = existingByName.id;
     const wasHost = existingByName.isHost;
     existingByName.id = playerId;
     existingByName.avatarUrl = avatarUrl;
     if (wasHost) room.hostId = playerId;
+    // Re-key this player's own submission and any vote they'd already cast
+    // from their old socket id to the new one — otherwise `isMyOwnSong`-style
+    // checks on the client break after a reconnect (their own song looks
+    // like someone else's), and a re-vote would look like a second voter
+    // instead of overwriting their earlier one.
+    for (const sub of room.submissions) {
+      if (sub.playerId === oldId) sub.playerId = playerId;
+      if (oldId in sub.votes) {
+        sub.votes[playerId] = sub.votes[oldId];
+        delete sub.votes[oldId];
+      }
+    }
     return room;
   }
 
