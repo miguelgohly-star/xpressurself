@@ -212,7 +212,7 @@ function HomeInner() {
       </div>
 
       {/* Footer */}
-      <p style={{ color: "var(--text-faint)", fontSize: 10, marginTop: 40, letterSpacing: "0.2em", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", fontWeight: 300 }}>
+      <p style={{ color: "var(--text-faint)", fontSize: 10, marginTop: 40, letterSpacing: "0.2em", textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontVariantNumeric: "lining-nums" }}>
         2–8 players · YouTube · Star voting
       </p>
       </div>
