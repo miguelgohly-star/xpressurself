@@ -12,7 +12,7 @@ import SongTimer from "@/components/SongTimer";
 import SlideToSkip from "@/components/SlideToSkip";
 import QRCode from "react-qr-code";
 import type { Room, TimeLimit, SongDuration, ScreenMode, RoundLimit } from "@/lib/gameState";
-import { avgVotes } from "@/lib/gameState";
+import { avgVotes, getCategoryDescription } from "@/lib/gameState";
 import { getSocket } from "@/lib/socket";
 import TopBar from "@/components/TopBar";
 import PlayerAvatar from "@/components/PlayerAvatar";
@@ -345,7 +345,7 @@ export default function HostRoom() {
   const alreadyVoted = votedSongs.has(room.currentSongIndex);
 
   // Wheel choices (host only) — "default" plus any wheels this signed-in host owns
-  const wheelChoices: WheelOption[] = [{ id: "default", name: "Default (15 categories)", categories: [] }, ...myWheels];
+  const wheelChoices: WheelOption[] = [{ id: "default", name: "Default (30 categories)", categories: [] }, ...myWheels];
 
   // LOBBY
   if (room.phase === "lobby") {
@@ -783,7 +783,6 @@ export default function HostRoom() {
               <CDWheel
                 spinning={room.phase === "spinning"}
                 category={room.currentCategory}
-                categories={room.categories}
               />
             </div>
 
@@ -1019,6 +1018,11 @@ export default function HostRoom() {
               <p style={{ fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: 20, letterSpacing: "0.01em", color: "var(--cream)", lineHeight: 1.35 }}>
                 {room.currentCategory}
               </p>
+              {getCategoryDescription(room.currentCategory) && (
+                <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: 13, color: "var(--text-secondary)", marginTop: 6, lineHeight: 1.4 }}>
+                  {getCategoryDescription(room.currentCategory)}
+                </p>
+              )}
             </div>
 
             {/* Players list */}
@@ -1079,6 +1083,11 @@ export default function HostRoom() {
               {room.gameOver ? "Game Over 🏆" : "Results 🏆"}
             </h2>
             <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>{room.currentCategory}</p>
+            {getCategoryDescription(room.currentCategory) && (
+              <p style={{ color: "var(--text-faint)", fontSize: 12, fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", marginTop: 2 }}>
+                {getCategoryDescription(room.currentCategory)}
+              </p>
+            )}
             <p style={{ color: "var(--text-faint)", fontSize: 11, letterSpacing: "0.15em", textTransform: "uppercase", marginTop: 4 }}>
               Round {Math.min(room.roundNumber, room.roundLimit)} of {room.roundLimit}
             </p>

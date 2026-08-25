@@ -1,13 +1,13 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { getCategoryDescription } from "@/lib/gameState";
 
 interface Props {
   spinning: boolean;
   category: string | null;
-  categories: string[];
 }
 
-export default function CDWheel({ spinning, category, categories }: Props) {
+export default function CDWheel({ spinning, category }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const angleRef = useRef(0);
   const shimmerRef = useRef(0);
@@ -89,47 +89,6 @@ export default function CDWheel({ spinning, category, categories }: Props) {
         ctx.stroke();
       }
 
-      // ── Category segment dividers + text ──
-      if (categories.length > 0) {
-        const segAngle = (Math.PI * 2) / categories.length;
-
-        // Divider lines
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(angleRef.current);
-        ctx.strokeStyle = "rgba(30,26,20,0.28)";
-        ctx.lineWidth = 0.8;
-        for (let i = 0; i < categories.length; i++) {
-          ctx.beginPath();
-          ctx.moveTo(inner + 4, 0);
-          ctx.lineTo(r - 4, 0);
-          ctx.stroke();
-          ctx.rotate(segAngle);
-        }
-        ctx.restore();
-
-        // Category labels
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(angleRef.current);
-        categories.forEach((cat, i) => {
-          const midAngle = i * segAngle + segAngle / 2;
-          ctx.save();
-          ctx.rotate(midAngle);
-          ctx.translate(r * 0.58, 0);
-          ctx.rotate(Math.PI / 2);
-          const fs = Math.max(7, Math.min(11, 200 / categories.length));
-          ctx.font = `300 ${fs}px 'Cormorant Garamond', serif`;
-          ctx.fillStyle = "rgba(30,26,20,0.6)";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          const label = cat.length > 13 ? cat.slice(0, 12) + "…" : cat;
-          ctx.fillText(label, 0, 0);
-          ctx.restore();
-        });
-        ctx.restore();
-      }
-
       // ── Centre hub ──
       const hub = ctx.createRadialGradient(cx, cy, 0, cx, cy, inner);
       hub.addColorStop(0, "#1c1814");
@@ -185,7 +144,7 @@ export default function CDWheel({ spinning, category, categories }: Props) {
 
     rafRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [categories]);
+  }, []);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24 }}>
@@ -202,7 +161,7 @@ export default function CDWheel({ spinning, category, categories }: Props) {
       </div>
 
       {displayCategory && (
-        <div className="glass animate-fade-in" style={{ padding: "14px 32px", textAlign: "center" }}>
+        <div className="glass animate-fade-in" style={{ padding: "14px 32px", textAlign: "center", maxWidth: 360 }}>
           <p style={{ fontSize: 10, letterSpacing: "0.3em", color: "var(--text-secondary)", textTransform: "uppercase", marginBottom: 8, fontFamily: "'Cormorant Garamond', serif" }}>
             Category
           </p>
@@ -214,6 +173,17 @@ export default function CDWheel({ spinning, category, categories }: Props) {
           }}>
             {displayCategory}
           </p>
+          {getCategoryDescription(displayCategory) && (
+            <p style={{
+              fontSize: 12,
+              fontFamily: "'Cormorant Garamond', serif",
+              fontStyle: "italic",
+              color: "var(--text-secondary)",
+              marginTop: 6,
+            }}>
+              {getCategoryDescription(displayCategory)}
+            </p>
+          )}
         </div>
       )}
 

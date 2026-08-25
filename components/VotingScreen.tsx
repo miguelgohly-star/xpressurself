@@ -3,7 +3,7 @@ import YouTubePlayer, { isMobileDevice } from "@/components/YouTubePlayer";
 import StarVote from "@/components/StarVote";
 import SongTimer from "@/components/SongTimer";
 import SlideToSkip from "@/components/SlideToSkip";
-import type { SongSubmission } from "@/lib/gameState";
+import { getCategoryDescription, type SongSubmission } from "@/lib/gameState";
 
 // Shared between /player and /room (when screenMode is "everyone") so both
 // screens show the identical voting UI — song header, video, vote widget,
@@ -90,6 +90,11 @@ export default function VotingScreen({
         <p style={{ fontFamily: "var(--font-ui)", fontWeight: 600, fontSize: 20, letterSpacing: "0.01em", color: "var(--cream)", lineHeight: 1.35 }}>
           {currentCategory}
         </p>
+        {getCategoryDescription(currentCategory) && (
+          <p style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", fontSize: 13, color: "var(--text-secondary)", marginTop: 6, lineHeight: 1.4 }}>
+            {getCategoryDescription(currentCategory)}
+          </p>
+        )}
       </div>
 
       {/* A majority (>50% of room.players) voting to skip advances the song

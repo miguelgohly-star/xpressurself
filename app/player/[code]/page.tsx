@@ -6,7 +6,7 @@ import SongSearch from "@/components/SongSearch";
 import Countdown from "@/components/Countdown";
 import VotingScreen from "@/components/VotingScreen";
 import type { Room } from "@/lib/gameState";
-import { avgVotes } from "@/lib/gameState";
+import { avgVotes, getCategoryDescription } from "@/lib/gameState";
 import { getSocket } from "@/lib/socket";
 import TopBar from "@/components/TopBar";
 import PlayerAvatar from "@/components/PlayerAvatar";
@@ -288,6 +288,11 @@ export default function PlayerView() {
             <h2 style={{ fontSize: 22, fontWeight: 900, color: "var(--cream)", textShadow: "0 0 20px rgba(226,27,27,0.15)" }}>
               {room.currentCategory}
             </h2>
+            {getCategoryDescription(room.currentCategory) && (
+              <p style={{ fontSize: 13, fontStyle: "italic", fontFamily: "'Cormorant Garamond', serif", color: "var(--text-secondary)", marginTop: -4 }}>
+                {getCategoryDescription(room.currentCategory)}
+              </p>
+            )}
             {room.submissionDeadline && <Countdown deadline={room.submissionDeadline} />}
           </div>
 

@@ -53,23 +53,57 @@ export interface Room {
   skipVoterIds: string[]; // players who've voted to skip the current song — a majority (>50% of room.players) auto-advances it
 }
 
-const DEFAULT_CATEGORIES = [
-  "Best Breakup Song",
-  "Song That Hits Different at 3AM",
-  "Ultimate Hype Track",
-  "Best Song to Drive To",
-  "Song That Defined Your Childhood",
-  "Best Song to Cry To",
-  "Underrated Banger",
-  "Best Opening Track",
-  "Song Everyone Knows the Words To",
-  "Best Bass Drop",
-  "Song That Makes You Feel Invincible",
-  "Best Love Song",
-  "Song for a Road Trip",
-  "Weirdest Song You Love",
-  "Best Song From a Movie",
+// Each built-in category pairs a name with a description — the description
+// is only ever flavor text (shown alongside the name wherever it's
+// displayed, see getCategoryDescription below); the name alone is what's
+// actually stored as room.categories / room.currentCategory. Custom
+// user-created Wheels (see prisma/schema.prisma's Category model) don't
+// carry a description at all, so getCategoryDescription just returns null
+// for those — nothing renders instead of a description line, no special
+// casing needed at the call sites.
+const DEFAULT_CATEGORY_DATA: { name: string; description: string }[] = [
+  { name: "walking into your own wedding", description: "the song you'd want playing for your entrance" },
+  { name: "first dance but make it devastating", description: "your ideal wedding first-dance song" },
+  { name: "driving home after the best night of your life", description: "that euphoric, slightly emotional comedown track" },
+  { name: "the funeral song you already picked out", description: "dramatic enough to leave everyone emotionally ruined" },
+  { name: "this altered my brain chemistry", description: "a song that permanently changed something in you" },
+  { name: "romanticizing a train ride for no reason", description: "music that makes everyday life feel cinematic" },
+  { name: "you just had to be there", description: "a song tied to a very specific era, trend or memory" },
+  { name: "main character walking through the airport", description: "headphones on, suitcase rolling, life transition incoming" },
+  { name: "the song playing when you finally move out", description: "freedom, nostalgia and mild existential crisis" },
+  { name: "late-night drive with someone you're definitely not dating", description: "suspiciously intimate car-ride music" },
+  { name: "summer holiday final night", description: "the song that plays when you know the trip is basically over" },
+  { name: "house party bathroom breakdown", description: "emotional damage while everyone else is still having fun" },
+  { name: "the afterparty is over and nobody wants to go home", description: "exhausted, dreamy, 4 AM energy" },
+  { name: "seeing your ex looking suspiciously good", description: "immediate villain arc soundtrack" },
+  { name: "accidentally falling in love with your best friend", description: "painfully specific yearning music" },
+  { name: "first kiss in an indie movie", description: "a song that would make the scene unbearably cinematic" },
+  { name: "getting ready while everyone is already waiting for you", description: "maximum confidence soundtrack" },
+  { name: "walking into the club like rent is already paid", description: "pure aura and zero financial responsibility" },
+  { name: "the song that would play during your villain reveal", description: "coldest possible character-development moment" },
+  { name: "staring out the window after one minor inconvenience", description: "unnecessarily dramatic but completely justified" },
+  { name: "graduation credits rolling", description: "the perfect ending song for one chapter of your life" },
+  { name: "last day of school and suddenly everyone is sentimental", description: "nostalgia hitting way harder than expected" },
+  { name: "moving to a city where nobody knows you", description: "reinvention-core" },
+  { name: "meeting someone on holiday knowing you'll never see them again", description: "temporary romance, permanent playlist addition" },
+  { name: "your situationship finally texts back", description: "song for the embarrassing amount of dopamine this causes" },
+  { name: "the algorithm put me on before everyone else", description: "a track you're still pretending to gatekeep" },
+  { name: "born to hear this live, forced to watch shaky concert clips", description: "the song you'd sell a kidney to experience live" },
+  { name: "this would go insane in a 12-second edit", description: "a song with one absolutely lethal section" },
+  { name: "the world is ending but the playlist is incredible", description: "apocalyptic final-scene soundtrack" },
+  { name: "if I lose with this I'm leaving the room", description: "your absolute Song Battle emergency button" },
 ];
+
+const DEFAULT_CATEGORIES = DEFAULT_CATEGORY_DATA.map((c) => c.name);
+
+const CATEGORY_DESCRIPTIONS: Record<string, string> = Object.fromEntries(
+  DEFAULT_CATEGORY_DATA.map((c) => [c.name, c.description])
+);
+
+export function getCategoryDescription(category: string | null): string | null {
+  if (!category) return null;
+  return CATEGORY_DESCRIPTIONS[category] ?? null;
+}
 
 const rooms = new Map<string, Room>();
 
