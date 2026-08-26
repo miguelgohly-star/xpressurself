@@ -12,7 +12,7 @@ import SongTimer from "@/components/SongTimer";
 import SlideToSkip from "@/components/SlideToSkip";
 import QRCode from "react-qr-code";
 import type { Room, TimeLimit, SongDuration, ScreenMode, RoundLimit } from "@/lib/gameState";
-import { avgVotes, getCategoryDescription } from "@/lib/gameState";
+import { avgVotes, getCategoryDescription, DEFAULT_CATEGORIES } from "@/lib/gameState";
 import { getSocket } from "@/lib/socket";
 import TopBar from "@/components/TopBar";
 import PlayerAvatar from "@/components/PlayerAvatar";
@@ -220,7 +220,16 @@ export default function HostRoom() {
 
   const applyWheel = (wheelId: string) => {
     setSelectedWheelId(wheelId);
-    if (wheelId === "default") return; // server keeps its default categories
+    if (wheelId === "default") {
+      // Switching back off a custom wheel has to explicitly tell the server
+      // to reset room.categories — it doesn't happen on its own, since the
+      // server just keeps whatever categories were last set (previously this
+      // was a no-op here, so re-selecting "Default" after a custom wheel had
+      // been applied left the custom wheel's categories active underneath
+      // despite the UI showing Default as selected).
+      s.current.emit("set-categories", { code, categories: DEFAULT_CATEGORIES });
+      return;
+    }
     const wheel = myWheels.find(w => w.id === wheelId);
     if (!wheel) return;
     s.current.emit("set-categories", { code, categories: wheel.categories.map(c => c.name) });

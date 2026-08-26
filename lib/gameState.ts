@@ -94,7 +94,7 @@ const DEFAULT_CATEGORY_DATA: { name: string; description: string }[] = [
   { name: "if I lose with this I'm leaving the room", description: "your absolute Song Battle emergency button" },
 ];
 
-const DEFAULT_CATEGORIES = DEFAULT_CATEGORY_DATA.map((c) => c.name);
+export const DEFAULT_CATEGORIES = DEFAULT_CATEGORY_DATA.map((c) => c.name);
 
 const CATEGORY_DESCRIPTIONS: Record<string, string> = Object.fromEntries(
   DEFAULT_CATEGORY_DATA.map((c) => [c.name, c.description])
