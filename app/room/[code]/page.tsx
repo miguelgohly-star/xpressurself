@@ -626,7 +626,7 @@ export default function HostRoom() {
                         key={w.id}
                         onClick={() => applyWheel(w.id)}
                         style={{
-                          textAlign: "left", cursor: "pointer", border: "1px solid",
+                          textAlign: "center", cursor: "pointer", border: "1px solid",
                           borderColor: selectedWheelId === w.id ? "rgba(226,27,27,0.45)" : "var(--glass-border2)",
                           background: selectedWheelId === w.id ? "rgba(226,27,27,0.05)" : "transparent",
                           padding: "8px 12px",
