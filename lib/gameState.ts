@@ -146,6 +146,13 @@ export function getRoom(code: string): Room | undefined {
   return rooms.get(code);
 }
 
+// Explicit removal for cases outside the normal "last player leaves" path —
+// e.g. server.ts's inactivity sweep, closing a room nobody's touched in a
+// while regardless of whether anyone's still (silently) connected to it.
+export function deleteRoom(code: string): void {
+  rooms.delete(code);
+}
+
 export function joinRoom(code: string, playerId: string, playerName: string, avatarUrl: string | null = null): Room | null {
   const room = rooms.get(code);
   if (!room) return null;

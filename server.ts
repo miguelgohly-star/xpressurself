@@ -6,6 +6,7 @@ import next from "next";
 import {
   createRoom,
   getRoom,
+  deleteRoom,
   joinRoom,
   leaveRoom,
   setPhase,
@@ -42,6 +43,17 @@ const submissionTimers = new Map<string, ReturnType<typeof setTimeout>>();
 // ready (see beginSongReadinessWait / the "video-ready" handler below).
 const readinessTimers = new Map<string, ReturnType<typeof setTimeout>>();
 const READY_TIMEOUT_MS = 15_000;
+
+// When a room last had any socket event touch it (see the onAny hook below,
+// and lastActivity.set(...) in "create-room") — a periodic sweep closes any
+// room nobody's done anything in for ROOM_INACTIVITY_MS, regardless of
+// phase or who's still (silently) connected. Rooms otherwise only ever get
+// removed by their player count hitting zero, which — now that a dropped
+// connection is never auto-removed mid-game — an abandoned in-progress
+// room would never naturally reach on its own.
+const lastActivity = new Map<string, number>();
+const ROOM_INACTIVITY_MS = 10 * 60 * 1000;
+const INACTIVITY_SWEEP_INTERVAL_MS = 60 * 1000;
 
 const MIME_TYPES: Record<string, string> = {
   ".js": "application/javascript; charset=utf-8",
@@ -228,8 +240,18 @@ app.prepare().then(() => {
   }
 
   io.on("connection", (socket) => {
+    // Centralized activity touch — fires for every incoming event on this
+    // socket, so individual handlers never need to remember to call this
+    // themselves. Every room-scoped event's payload carries `code`; events
+    // that don't (friend chat's "identify"/"typing") just no-op here.
+    socket.onAny((_eventName, payload) => {
+      const code = payload?.code;
+      if (typeof code === "string" && code) lastActivity.set(code.toUpperCase(), Date.now());
+    });
+
     socket.on("create-room", ({ hostName, avatarUrl }: { hostName: string; avatarUrl?: string | null }) => {
       const room = createRoom(socket.id, hostName, avatarUrl ?? null);
+      lastActivity.set(room.code, Date.now());
       socket.join(room.code);
       socketRoomCode.set(socket.id, room.code);
       socket.emit("room-created", room);
@@ -450,6 +472,25 @@ app.prepare().then(() => {
       disconnectTimers.set(playerId, timer);
     });
   });
+
+  // Close any room nobody's touched in ROOM_INACTIVITY_MS, regardless of
+  // phase — the disconnect-grace path above only ever cleans up an idle
+  // *lobby* (see the comment there); a room that's actually mid-game with
+  // everyone gone silent would otherwise sit in memory forever.
+  setInterval(() => {
+    const now = Date.now();
+    for (const [code, ts] of lastActivity) {
+      if (now - ts < ROOM_INACTIVITY_MS) continue;
+      lastActivity.delete(code);
+      if (!getRoom(code)) continue; // already gone via the normal empty-room path
+      io.to(code).emit("error", { message: "Room closed due to inactivity" });
+      deleteRoom(code);
+      clearReadinessTimer(code);
+      const submissionTimer = submissionTimers.get(code);
+      if (submissionTimer) clearTimeout(submissionTimer);
+      submissionTimers.delete(code);
+    }
+  }, INACTIVITY_SWEEP_INTERVAL_MS);
 
   const port = parseInt(process.env.PORT || "3000", 10);
   httpServer.listen(port, () => {
