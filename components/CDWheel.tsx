@@ -156,6 +156,12 @@ export default function CDWheel({ spinning, category }: Props) {
           style={{
             borderRadius: "50%",
             filter: "drop-shadow(0 0 40px rgba(200,180,150,0.18)) drop-shadow(0 8px 30px rgba(0,0,0,0.7))",
+            // Backing-store resolution stays 380x380 (crisp on retina); the
+            // display size now scales down on any container narrower than
+            // that — needed now that this renders on phone-width /player
+            // pages too, not just the host's much wider screen.
+            maxWidth: "100%",
+            height: "auto",
           }}
         />
       </div>

@@ -3,6 +3,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import SongSearch from "@/components/SongSearch";
+import CDWheel from "@/components/CDWheel";
 import Countdown from "@/components/Countdown";
 import VotingScreen from "@/components/VotingScreen";
 import type { Room } from "@/lib/gameState";
@@ -231,14 +232,13 @@ export default function PlayerView() {
     );
   }
 
-  // SPINNING
+  // SPINNING — the actual wheel, same as the host sees, not just a placeholder
   if (room.phase === "spinning") {
     return (
       <PlayerPageShell>
-        <div className="glass p-8 text-center animate-fade-in" style={{ maxWidth: 360, width: "100%" }}>
-          <div style={{ fontSize: 60, marginBottom: 16, animation: "cd-spin 1s linear infinite" }}>💿</div>
-          <p style={{ fontSize: 18, fontWeight: 700 }}>Spinning the wheel…</p>
-          <p style={{ color: "var(--text-secondary)", marginTop: 8, fontSize: 14 }}>Get ready to pick a song!</p>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, width: "100%", maxWidth: 340 }}>
+          <CDWheel spinning category={null} />
+          <p style={{ color: "var(--text-secondary)", fontSize: 14 }}>Get ready to pick a song!</p>
         </div>
       </PlayerPageShell>
     );
