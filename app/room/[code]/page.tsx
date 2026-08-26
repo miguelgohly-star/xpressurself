@@ -10,6 +10,7 @@ import Countdown from "@/components/Countdown";
 import VotingScreen from "@/components/VotingScreen";
 import SongTimer from "@/components/SongTimer";
 import SlideToSkip from "@/components/SlideToSkip";
+import WheelsManager from "@/components/WheelsManager";
 import QRCode from "react-qr-code";
 import type { Room, TimeLimit, SongDuration, ScreenMode, RoundLimit } from "@/lib/gameState";
 import { avgVotes, getCategoryDescription, DEFAULT_CATEGORIES } from "@/lib/gameState";
@@ -62,6 +63,7 @@ export default function HostRoom() {
   const [startTimeInput, setStartTimeInput] = useState("");
   const [myWheels, setMyWheels] = useState<WheelOption[]>([]);
   const [selectedWheelId, setSelectedWheelId] = useState<string>("default");
+  const [wheelsModalOpen, setWheelsModalOpen] = useState(false);
   const [codeVisible, setCodeVisible] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
   const [friendsList, setFriendsList] = useState<FriendUser[]>([]);
@@ -653,13 +655,28 @@ export default function HostRoom() {
                       </button>
                     ))}
 
-                    <a href={wheelsAuthHref} style={{
-                      fontSize: 10, color: "var(--text-faint)", marginTop: 4,
-                      letterSpacing: "0.18em", textDecoration: "none", textTransform: "uppercase",
-                      fontFamily: "'Cormorant Garamond', serif",
-                    }}>
-                      + Manage Wheels →
-                    </a>
+                    {session ? (
+                      // Opens in-place instead of navigating to /wheels, so
+                      // managing wheels mid-setup doesn't pull the host (and
+                      // their socket connection) out of the room they're
+                      // hosting — see the modal rendered below.
+                      <button onClick={() => setWheelsModalOpen(true)} style={{
+                        fontSize: 10, color: "var(--text-faint)", marginTop: 4,
+                        letterSpacing: "0.18em", textDecoration: "none", textTransform: "uppercase",
+                        fontFamily: "'Cormorant Garamond', serif",
+                        background: "none", border: "none", cursor: "pointer", padding: 0, textAlign: "left",
+                      }}>
+                        + Manage Wheels →
+                      </button>
+                    ) : (
+                      <a href={wheelsAuthHref} style={{
+                        fontSize: 10, color: "var(--text-faint)", marginTop: 4,
+                        letterSpacing: "0.18em", textDecoration: "none", textTransform: "uppercase",
+                        fontFamily: "'Cormorant Garamond', serif",
+                      }}>
+                        + Manage Wheels →
+                      </a>
+                    )}
                   </div>
                 ) : (
                   <div style={{ textAlign: "center" }}>
@@ -736,6 +753,38 @@ export default function HostRoom() {
           )}
           </div>
         </div>
+
+        {/* Manage Wheels modal — lets the host create/edit/delete their
+            custom wheels without leaving this room; closing it just
+            dismisses the overlay, same room/socket state the whole time. */}
+        {wheelsModalOpen && (
+          <div
+            onClick={() => setWheelsModalOpen(false)}
+            style={{
+              position: "fixed", inset: 0, zIndex: 100,
+              background: "rgba(20,16,10,0.55)", backdropFilter: "blur(4px)",
+              display: "flex", alignItems: "center", justifyContent: "center", padding: 24,
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{ width: "100%", maxWidth: 720, maxHeight: "90vh", overflowY: "auto", position: "relative" }}
+            >
+              <button
+                onClick={() => setWheelsModalOpen(false)}
+                title="Close"
+                style={{
+                  position: "absolute", top: 0, right: 0, zIndex: 1,
+                  width: 28, height: 28, borderRadius: "50%",
+                  background: "var(--glass)", border: "1px solid rgba(242,236,227,0.15)",
+                  color: "var(--text-secondary)", fontSize: 14, lineHeight: 1,
+                  display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+                }}
+              >✕</button>
+              <WheelsManager onWheelsChanged={setMyWheels} />
+            </div>
+          </div>
+        )}
 
         <style>{`
           @keyframes inviteMenuIn{
