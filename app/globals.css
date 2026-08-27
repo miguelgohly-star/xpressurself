@@ -38,9 +38,9 @@
   --text-mid:      #3a3428;
   --text-light:    rgba(50,42,28,0.48);
   --text-faint:    rgba(50,42,28,0.92);
-  --text-secondary:rgba(50,42,28,0.42);
+  --text-secondary:rgba(50,42,28,0.85);
   --cream:         #1e1a14;
-  --cream-dim:     rgba(50,42,28,0.55);
+  --cream-dim:     rgba(50,42,28,0.8);
   --cream-ghost:   rgba(226,27,27,0.55);
   --danger:        #c81e1e;
   --danger-soft:   rgba(200,30,30,0.12);
