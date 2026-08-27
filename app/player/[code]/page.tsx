@@ -188,6 +188,13 @@ export default function PlayerView() {
 
   // LOBBY
   if (room.phase === "lobby") {
+    const lbl: React.CSSProperties = {
+      fontSize: 9, letterSpacing: "0.2em", color: "var(--text-faint)",
+      textTransform: "uppercase", fontFamily: "'Cormorant Garamond', serif", marginBottom: 4,
+    };
+    const val: React.CSSProperties = {
+      fontSize: 13, color: "var(--text-secondary)", fontFamily: "'Cormorant Garamond', serif",
+    };
     return (
       <PlayerPageShell>
         <div className="glass p-8 text-center" style={{ maxWidth: 360, width: "100%" }}>
@@ -211,6 +218,35 @@ export default function PlayerView() {
               </div>
             ))}
           </div>
+
+          {/* Read-only mirror of the host's Game Settings panel — players
+              couldn't see what they'd actually signed up for before this
+              (song limit, runtime cap, screen mode, rounds, wheel) until
+              the wheel had already landed on a category. */}
+          <div className="rule" style={{ margin: "20px 0 16px" }} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 10px", textAlign: "left" }}>
+            <div>
+              <p style={lbl}>Song Limit</p>
+              <p style={val}>{room.timeLimit === null ? "No limit" : `${room.timeLimit} min`}</p>
+            </div>
+            <div>
+              <p style={lbl}>Max Runtime</p>
+              <p style={val}>{room.songDuration === null ? "No limit" : room.songDuration >= 60 ? "1 min" : `${room.songDuration}s`}</p>
+            </div>
+            <div>
+              <p style={lbl}>Screen Mode</p>
+              <p style={val}>{room.screenMode === "everyone" ? "Everyone's Screen" : "One Screen"}</p>
+            </div>
+            <div>
+              <p style={lbl}>Rounds</p>
+              <p style={val}>{room.roundLimit}</p>
+            </div>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <p style={lbl}>Wheel</p>
+              <p style={val}>{room.categories.length} categories in play</p>
+            </div>
+          </div>
+
           <p style={{ color: "var(--text-secondary)", fontSize: 12, marginTop: 20 }}>
             Waiting for host to spin…
           </p>
