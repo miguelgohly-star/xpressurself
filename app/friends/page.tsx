@@ -266,10 +266,10 @@ export default function FriendsPage() {
                   border: "1px solid rgba(30,26,20,0.12)",
                   background: searchOpen ? "rgba(30,26,20,0.08)" : "rgba(255,255,255,0.55)",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 13, color: "var(--text-dark)", transition: "background 0.15s ease",
+                  overflow: "hidden", transition: "background 0.15s ease",
                 }}
               >
-                🔍
+                <img src="/lens.jpg" alt="Search" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
               </button>
               {searchOpen && (
                 <div className="aero-panel" style={{
