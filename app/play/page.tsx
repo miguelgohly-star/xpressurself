@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { getSocket } from "@/lib/socket";
 import TopBar from "@/components/TopBar";
+import SongWarsBackground from "@/components/SongWarsBackground";
 
 const labelStyle: React.CSSProperties = {
   fontSize: 10,
@@ -97,10 +98,7 @@ function HomeInner() {
 
   return (
     <>
-      <img src="/background-song-wars.webp" alt="" style={{
-        position: "fixed", inset: 0, width: "100%", height: "100%",
-        zIndex: 0, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
-      }}/>
+      <SongWarsBackground zIndex={0} />
 
       <div className="page" style={{ padding: "88px 24px 20px", justifyContent: "flex-start", position: "relative", zIndex: 1 }}>
       <TopBar />

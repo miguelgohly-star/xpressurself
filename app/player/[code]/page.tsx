@@ -11,6 +11,7 @@ import { avgVotes, getCategoryDescription } from "@/lib/gameState";
 import { getSocket } from "@/lib/socket";
 import TopBar from "@/components/TopBar";
 import PlayerAvatar from "@/components/PlayerAvatar";
+import SongWarsBackground from "@/components/SongWarsBackground";
 
 function PlayerCountdown() {
   const [n, setN] = useState(3);
@@ -38,10 +39,7 @@ function PlayerCountdown() {
 function PlayerPageShell({ children, hideTopBar = false }: { children: React.ReactNode; hideTopBar?: boolean }) {
   return (
     <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-      <img src="/background-song-wars.webp" alt="" style={{
-        position: "fixed", inset: 0, width: "100%", height: "100%",
-        zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
-      }}/>
+      <SongWarsBackground />
       <TopBar hidden={hideTopBar} />
       {children}
     </div>

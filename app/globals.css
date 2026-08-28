@@ -21,6 +21,22 @@
   }
 }
 
+/* ─── Song Wars background, CSS-only variant — used by the one spot
+   (room/[code]'s "One Screen" TV layout) that needs background-image
+   instead of an <img>, since that content can grow taller than 100vh and
+   an <img> with object-fit:cover would scale against the overflowed
+   height instead of the actual viewport. Same 700px swap-point as
+   components/SongWarsBackground.tsx's <picture> breakpoint, kept in sync
+   manually since a CSS media query can't share a JS constant. ─── */
+.song-wars-bg-fixed {
+  background-image: url(/background-song-wars.webp);
+  background-size: cover;
+  background-position: center;
+}
+@media (max-width: 700px) {
+  .song-wars-bg-fixed { background-image: url(/background-song-wars-portrait.webp); }
+}
+
 /* ─── Grunge Angelic Theme — white, grey, ethereal ─── */
 :root {
   /* Old paper + sage sky + lavender mist */

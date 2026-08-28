@@ -11,6 +11,7 @@ import VotingScreen from "@/components/VotingScreen";
 import SongTimer from "@/components/SongTimer";
 import SlideToSkip from "@/components/SlideToSkip";
 import WheelsManager from "@/components/WheelsManager";
+import SongWarsBackground from "@/components/SongWarsBackground";
 import QRCode from "react-qr-code";
 import type { Room, TimeLimit, SongDuration, ScreenMode, RoundLimit } from "@/lib/gameState";
 import { avgVotes, getCategoryDescription, DEFAULT_CATEGORIES } from "@/lib/gameState";
@@ -262,10 +263,7 @@ export default function HostRoom() {
   if (sessionEnded) {
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-        <img src="/background-song-wars.webp" alt="" style={{
-          position: "fixed", inset: 0, width: "100%", height: "100%",
-          zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
-        }}/>
+        <SongWarsBackground />
         <TopBar />
         <div className="glass p-8 text-center animate-fade-in" style={{ maxWidth: 420 }}>
           <p style={{ fontSize: 15, marginBottom: 8 }}>This game session has ended.</p>
@@ -278,10 +276,7 @@ export default function HostRoom() {
   if (!room) {
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-        <img src="/background-song-wars.webp" alt="" style={{
-          position: "fixed", inset: 0, width: "100%", height: "100%",
-          zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
-        }}/>
+        <SongWarsBackground />
         <TopBar />
         <div className="glass p-8 text-center animate-fade-in">
           <p style={{ color: "var(--text-secondary)" }}>Connecting…</p>
@@ -368,10 +363,7 @@ export default function HostRoom() {
 
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-        <img src="/background-song-wars.webp" alt="" style={{
-          position: "fixed", inset: 0, width: "100%", height: "100%",
-          zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
-        }}/>
+        <SongWarsBackground />
         <TopBar />
         <div className="page-wide" style={{ width: "100%" }}>
           <div className="glass room-lobby-card" style={{
@@ -800,10 +792,7 @@ export default function HostRoom() {
   if (room.phase === "starting") {
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-        <img src="/background-song-wars.webp" alt="" style={{
-          position: "fixed", inset: 0, width: "100%", height: "100%",
-          zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
-        }}/>
+        <SongWarsBackground />
         <TopBar />
         <div className="glass p-12 text-center animate-fade-in" style={{ maxWidth: 400 }}>
           <p style={{ fontSize: 13, letterSpacing: "0.15em", color: "var(--text-secondary)", marginBottom: 16 }}>GET READY</p>
@@ -819,10 +808,7 @@ export default function HostRoom() {
     const allSubmitted = room.submissions.length >= room.players.length;
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(45px, 6vh, 120px)" }}>
-        <img src="/background-song-wars.webp" alt="" style={{
-          position: "fixed", inset: 0, width: "100%", height: "100%",
-          zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
-        }}/>
+        <SongWarsBackground />
         <TopBar />
         {/* maxWidth here used to be 600 — fine while it only centered the
             header text, but once the wheel+form row renders (flex, wheel
@@ -967,10 +953,7 @@ export default function HostRoom() {
     if (room.screenMode === "everyone") {
       return (
         <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-          <img src="/background-song-wars.webp" alt="" style={{
-            position: "fixed", inset: 0, width: "100%", height: "100%",
-            zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
-          }}/>
+          <SongWarsBackground />
           <TopBar hidden />
           <VotingScreen
             currentSong={currentSong}
@@ -1005,10 +988,7 @@ export default function HostRoom() {
             against that overflowed height instead of the actual screen,
             zooming in and cropping the art unrecognizably. Same backdrop as
             the /play page, for visual consistency between the two. */}
-        <div style={{
-          position: "fixed", inset: 0, zIndex: -1,
-          backgroundImage: "url(/background-song-wars.webp)", backgroundSize: "cover", backgroundPosition: "center",
-        }} />
+        <div className="song-wars-bg-fixed" style={{ position: "fixed", inset: 0, zIndex: -1 }} />
         <TopBar hidden />
 
         {/* Vote row — no card/box, floats directly on the background, locked
@@ -1130,10 +1110,7 @@ export default function HostRoom() {
       .sort((a, b) => b.avg - a.avg);
     return (
       <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-        <img src="/background-song-wars.webp" alt="" style={{
-          position: "fixed", inset: 0, width: "100%", height: "100%",
-          zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
-        }}/>
+        <SongWarsBackground />
         <TopBar />
         <div style={{ width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 24 }}>
           <div className="text-center">
@@ -1237,10 +1214,7 @@ export default function HostRoom() {
 
   return (
     <div className="page" style={{ justifyContent: "flex-start", paddingTop: "clamp(90px, 8vh, 150px)" }}>
-      <img src="/background-song-wars.webp" alt="" style={{
-        position: "fixed", inset: 0, width: "100%", height: "100%",
-        zIndex: -1, pointerEvents: "none", objectFit: "cover", objectPosition: "center",
-      }}/>
+      <SongWarsBackground />
       <TopBar />
       <div className="glass p-8 text-center">
         <p style={{ color: "var(--text-secondary)" }}>Phase: {room.phase}</p>
